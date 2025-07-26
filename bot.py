@@ -24,6 +24,7 @@ BOT_TOKEN = os.getenv('BOT_TOKEN')
 PUSHIN_PAY_TOKEN = '39884|DKt79CdRINdHafadVS01KwEHsF6vi8GwAoW273Meea17b5d5'
 PUSHIN_PAY_BASE_URL = 'https://api.pushinpay.com.br/api'
 CONTEUDO_LINK = 'https://kyokoleticia.site/conteudo'
+GROUP_CHAT_ID = os.getenv('GROUP_CHAT_ID')
 
 # Estados da conversa
 user_states = {}
@@ -507,6 +508,40 @@ async def oi_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Comando /oi"""
     await start_conversation(update, context)
 
+async def send_promotional_message(context: ContextTypes.DEFAULT_TYPE):
+    """Enviar mensagem promocional automática para o grupo"""
+    try:
+        if GROUP_CHAT_ID:
+            promotional_text = "Super promo, pack apenas hoje por R$ 12,90 ❤️‍🔥 Vem se divertir comigo amor"
+            
+            await context.bot.send_message(
+                chat_id=GROUP_CHAT_ID,
+                text=promotional_text
+            )
+            
+            logger.info(f'Mensagem promocional enviada para o grupo {GROUP_CHAT_ID}')
+        else:
+            logger.warning('GROUP_CHAT_ID não configurado - mensagem promocional não enviada')
+            
+    except Exception as e:
+        logger.error(f'Erro ao enviar mensagem promocional: {e}')
+
+async def get_group_id_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Comando para obter o ID do grupo atual"""
+    chat_id = update.effective_chat.id
+    chat_type = update.effective_chat.type
+    
+    if chat_type in ['group', 'supergroup']:
+        await update.message.reply_text(
+            f"📋 **ID deste grupo:** `{chat_id}`\n\n"
+            f"Copie este ID e adicione no arquivo .env como GROUP_CHAT_ID para ativar as mensagens automáticas.",
+            parse_mode=ParseMode.MARKDOWN
+        )
+    else:
+        await update.message.reply_text(
+            "❌ Este comando só funciona em grupos. Adicione o bot ao grupo 'Kyoko Packs 👄❤️‍🔥' e use o comando lá."
+        )
+
 def main():
     """Função principal"""
     if not BOT_TOKEN:
@@ -520,8 +555,22 @@ def main():
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("oi", oi_command))
     application.add_handler(CommandHandler("metricas", show_metrics))
+    application.add_handler(CommandHandler("groupid", get_group_id_command))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     application.add_handler(CallbackQueryHandler(button_callback))
+    
+    # Configurar mensagens automáticas (a cada 1 hora)
+    if GROUP_CHAT_ID:
+        job_queue = application.job_queue
+        job_queue.run_repeating(
+            send_promotional_message,
+            interval=3600,  # 3600 segundos = 1 hora
+            first=60,       # Primeira execução após 1 minuto
+            name='promotional_messages'
+        )
+        logger.info(f"Mensagens automáticas configuradas para o grupo {GROUP_CHAT_ID} (a cada 1 hora)")
+    else:
+        logger.warning("GROUP_CHAT_ID não configurado - mensagens automáticas desabilitadas")
     
     # Iniciar bot
     logger.info("Bot iniciado!")
