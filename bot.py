@@ -40,22 +40,27 @@ def create_pix_payment(amount: float, description: str) -> dict:
     try:
         headers = {
             'Authorization': f'Bearer {PUSHIN_PAY_TOKEN}',
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
         }
         
+        # Converter valor para centavos (API espera valor em centavos)
+        value_in_cents = int(amount * 100)
+        
         payload = {
-            'amount': amount,
-            'description': description,
-            'payment_method': 'pix'
+            'value': value_in_cents,
+            'webhook_url': None  # Opcional: adicione sua URL de webhook se tiver
         }
         
         response = requests.post(
-            f'{PUSHIN_PAY_BASE_URL}/payments',
+            f'{PUSHIN_PAY_BASE_URL}/pix/cashIn',
             json=payload,
             headers=headers
         )
         
-        if response.status_code == 201:
+        logger.info(f'Resposta da API Pushin Pay: {response.status_code} - {response.text}')
+        
+        if response.status_code == 200 or response.status_code == 201:
             return response.json()
         else:
             logger.error(f'Erro ao criar pagamento: {response.status_code} - {response.text}')
@@ -70,19 +75,22 @@ def check_payment_status(payment_id: str) -> bool:
     try:
         headers = {
             'Authorization': f'Bearer {PUSHIN_PAY_TOKEN}',
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
         }
         
         response = requests.get(
-            f'{PUSHIN_PAY_BASE_URL}/payments/{payment_id}',
+            f'{PUSHIN_PAY_BASE_URL}/transactions/{payment_id}',
             headers=headers
         )
+        
+        logger.info(f'Verificação de pagamento: {response.status_code} - {response.text}')
         
         if response.status_code == 200:
             payment_data = response.json()
             return payment_data.get('status') == 'paid'
         else:
-            logger.error(f'Erro ao verificar pagamento: {response.status_code}')
+            logger.error(f'Erro ao verificar pagamento: {response.status_code} - {response.text}')
             return False
             
     except Exception as e:
@@ -231,12 +239,12 @@ async def handle_yes_response(update: Update, context: ContextTypes.DEFAULT_TYPE
         
         # Salvar dados do pagamento
         context.user_data['payment_id_12'] = payment_data.get('id')
-        context.user_data['pix_code_12'] = payment_data.get('pix_code')
+        context.user_data['pix_code_12'] = payment_data.get('qr_code')
         
         await update.message.reply_text(
             f"Perfeito amor! 💕\n\n"
             f"Aqui está seu PIX de R$ 12,90:\n\n"
-            f"`{payment_data.get('pix_code', 'Código PIX não disponível')}`\n\n"
+            f"`{payment_data.get('qr_code', 'Código PIX não disponível')}`\n\n"
             f"Após o pagamento, clique em 'Confirmar Pagamento' abaixo!",
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=InlineKeyboardMarkup([
@@ -317,12 +325,12 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             user_states[user_id] = ConversationState.WAITING_PAYMENT_5
             
             context.user_data['payment_id_5'] = payment_data.get('id')
-            context.user_data['pix_code_5'] = payment_data.get('pix_code')
+            context.user_data['pix_code_5'] = payment_data.get('qr_code')
             
             await query.edit_message_text(
                 f"Eba! Que bom que aceitou! 💕\n\n"
                 f"Aqui está seu PIX de R$ 5,00:\n\n"
-                f"`{payment_data.get('pix_code', 'Código PIX não disponível')}`\n\n"
+                f"`{payment_data.get('qr_code', 'Código PIX não disponível')}`\n\n"
                 f"Após o pagamento, clique em 'Confirmar Pagamento' abaixo!",
                 parse_mode=ParseMode.MARKDOWN,
                 reply_markup=InlineKeyboardMarkup([
