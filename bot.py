@@ -118,14 +118,13 @@ async def start_conversation(update: Update, context: ContextTypes.DEFAULT_TYPE)
     # Aguardar um pouco antes da próxima mensagem
     await asyncio.sleep(2)
     
-    # Enviar mídia
+    # Enviar primeira foto
     try:
-        # Foto 1
-        if os.path.exists('fotos/1.JPG'):
-            with open('fotos/1.JPG', 'rb') as photo:
+        if os.path.exists('fotos/4.jpg'):
+            with open('fotos/4.jpg', 'rb') as photo:
                 await update.message.reply_photo(photo=photo)
         else:
-            await update.message.reply_text("📸 1.JPG (foto será adicionada)")
+            await update.message.reply_text("📸 4.jpg (foto será adicionada)")
         
         await asyncio.sleep(2)
         
@@ -339,10 +338,10 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "Aaaaah, tudo bem então gatinho, obrigada. Caso mude de ideia só me falar aqui"
         )
         
-        # Enviar foto 4.jpg
+        # Enviar foto 1.JPG
         try:
-            if os.path.exists('fotos/4.jpg'):
-                with open('fotos/4.jpg', 'rb') as photo:
+            if os.path.exists('fotos/1.JPG'):
+                with open('fotos/1.JPG', 'rb') as photo:
                     await context.bot.send_photo(
                         chat_id=query.message.chat_id,
                         photo=photo
@@ -350,7 +349,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                 await context.bot.send_message(
                     chat_id=query.message.chat_id,
-                    text="📸 4.jpg (foto será adicionada)"
+                    text="📸 1.JPG (foto será adicionada)"
                 )
         except Exception as e:
             logger.error(f'Erro ao enviar foto final: {e}')
