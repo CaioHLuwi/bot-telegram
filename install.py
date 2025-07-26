@@ -282,7 +282,6 @@ def print_final_instructions():
     print("   - 2.jpg (segunda foto)")
     print("   - 4.jpg (foto de despedida)")
     print("   - 1.mp4 (vídeo)")
-    print("   - audio.mp3 (áudio - opcional)")
     
     print("\n2. 🚀 Para iniciar o bot:")
     if system == "Windows":

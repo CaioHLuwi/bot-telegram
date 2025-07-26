@@ -415,7 +415,7 @@ async def show_metrics(update: Update, context: ContextTypes.DEFAULT_TYPE):
         daily_stats = bot_metrics.get_daily_stats(days=7)
         
         # Obter estatísticas por hora de hoje
-        hourly_stats = bot_metrics.get_hourly_stats()
+        hourly_stats = bot_metrics.get_hourly_distribution()
         
         # Montar mensagem de métricas
         metrics_message = f"📊 **MÉTRICAS DO BOT KYOKO**\n\n"
@@ -434,18 +434,19 @@ async def show_metrics(update: Update, context: ContextTypes.DEFAULT_TYPE):
         metrics_message += f"• Pack R$ 5,00: {conversion_stats['payments_5']} vendas\n\n"
         
         # Estatísticas diárias (últimos 7 dias)
-        if daily_stats:
+        if daily_stats and daily_stats['days']:
             metrics_message += f"📅 **ÚLTIMOS 7 DIAS**\n"
-            for date, stats in daily_stats.items():
-                metrics_message += f"• {date}: {stats['conversations']} conversas, {stats['payments']} pagamentos, R$ {stats['revenue']:.2f}\n"
+            for day_data in daily_stats['days']:
+                if day_data['total_conversations'] > 0:  # Só mostrar dias com atividade
+                    metrics_message += f"• {day_data['date']}: {day_data['total_conversations']} conversas, {day_data['payments']} pagamentos, R$ {day_data['revenue']:.2f}\n"
             metrics_message += "\n"
         
         # Estatísticas por hora (hoje)
-        if hourly_stats:
+        if hourly_stats and hourly_stats['hourly_data']:
             metrics_message += f"🕐 **HOJE POR HORA**\n"
-            for hour, stats in hourly_stats.items():
-                if stats['conversations'] > 0:  # Só mostrar horas com atividade
-                    metrics_message += f"• {hour}h: {stats['conversations']} conversas\n"
+            for hour_data in hourly_stats['hourly_data']:
+                if hour_data['count'] > 0:  # Só mostrar horas com atividade
+                    metrics_message += f"• {hour_data['hour']}: {hour_data['count']} conversas ({hour_data['percentage']}%)\n"
         
         await update.message.reply_text(
             metrics_message,
