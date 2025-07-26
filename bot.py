@@ -512,7 +512,7 @@ async def send_promotional_message(context: ContextTypes.DEFAULT_TYPE):
     """Enviar mensagem promocional automática para o grupo"""
     try:
         if GROUP_CHAT_ID:
-            promotional_text = "Super promo, pack apenas hoje por R$ 12,90 ❤️‍🔥 Vem se divertir comigo amor"
+            promotional_text = "Super promo, pack apenas hoje por R$ 12,90 ❤️‍🔥 Vem se divertir comigo amor @kyoko_uwubot"
             
             await context.bot.send_message(
                 chat_id=GROUP_CHAT_ID,
@@ -530,17 +530,65 @@ async def get_group_id_command(update: Update, context: ContextTypes.DEFAULT_TYP
     """Comando para obter o ID do grupo atual"""
     chat_id = update.effective_chat.id
     chat_type = update.effective_chat.type
+    chat_title = update.effective_chat.title or "Chat Privado"
+    
+    message = f"📋 **Informações do Chat:**\n\n"
+    message += f"🆔 **ID:** `{chat_id}`\n"
+    message += f"📝 **Tipo:** {chat_type}\n"
+    message += f"🏷️ **Nome:** {chat_title}\n\n"
     
     if chat_type in ['group', 'supergroup']:
-        await update.message.reply_text(
-            f"📋 **ID deste grupo:** `{chat_id}`\n\n"
-            f"Copie este ID e adicione no arquivo .env como GROUP_CHAT_ID para ativar as mensagens automáticas.",
-            parse_mode=ParseMode.MARKDOWN
-        )
+        message += "✅ Este é um grupo! Você pode usar este ID na variável GROUP_CHAT_ID do arquivo .env"
     else:
-        await update.message.reply_text(
-            "❌ Este comando só funciona em grupos. Adicione o bot ao grupo 'Kyoko Packs 👄❤️‍🔥' e use o comando lá."
-        )
+        message += "ℹ️ Este não é um grupo. Para obter o ID de um grupo, execute este comando dentro do grupo desejado."
+    
+    await update.message.reply_text(message, parse_mode='Markdown')
+
+async def saude_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Comando para verificar se o bot está funcionando normalmente"""
+    import datetime
+    import psutil
+    import os
+    
+    try:
+        # Informações básicas
+        now = datetime.datetime.now()
+        uptime = datetime.datetime.now() - datetime.datetime.fromtimestamp(psutil.Process(os.getpid()).create_time())
+        
+        # Status do sistema
+        cpu_percent = psutil.cpu_percent(interval=1)
+        memory = psutil.virtual_memory()
+        
+        # Verifica se as mensagens automáticas estão configuradas
+        job_queue_status = "✅ Ativo" if GROUP_CHAT_ID else "⚠️ Não configurado"
+        
+        message = f"🤖 **Status do Bot Kyoko**\n\n"
+        message += f"✅ **Bot Online:** Funcionando normalmente\n"
+        message += f"⏰ **Data/Hora:** {now.strftime('%d/%m/%Y %H:%M:%S')}\n"
+        message += f"🕐 **Uptime:** {str(uptime).split('.')[0]}\n"
+        message += f"💾 **Uso de Memória:** {memory.percent:.1f}%\n"
+        message += f"🖥️ **Uso de CPU:** {cpu_percent:.1f}%\n"
+        message += f"📢 **Mensagens Automáticas:** {job_queue_status}\n\n"
+        
+        if GROUP_CHAT_ID:
+            message += f"🎯 **Grupo Configurado:** `{GROUP_CHAT_ID}`\n"
+        
+        message += "🔄 **Comandos Disponíveis:**\n"
+        message += "• `/start` - Iniciar bot\n"
+        message += "• `/oi` - Saudação\n"
+        message += "• `/metricas` - Ver estatísticas\n"
+        message += "• `/groupid` - ID do grupo\n"
+        message += "• `/saude` - Status do bot\n\n"
+        message += "💚 **Tudo funcionando perfeitamente!**"
+        
+        await update.message.reply_text(message, parse_mode='Markdown')
+        logger.info(f"Comando /saude executado por {update.effective_user.first_name}")
+        
+    except Exception as e:
+        error_message = f"❌ **Erro ao verificar status:**\n\n`{str(e)}`\n\n"
+        error_message += "⚠️ O bot está online, mas houve um problema ao coletar informações do sistema."
+        await update.message.reply_text(error_message, parse_mode='Markdown')
+        logger.error(f"Erro no comando /saude: {e}")
 
 def main():
     """Função principal"""
@@ -556,6 +604,7 @@ def main():
     application.add_handler(CommandHandler("oi", oi_command))
     application.add_handler(CommandHandler("metricas", show_metrics))
     application.add_handler(CommandHandler("groupid", get_group_id_command))
+    application.add_handler(CommandHandler("saude", saude_command))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     application.add_handler(CallbackQueryHandler(button_callback))
     
@@ -566,7 +615,7 @@ def main():
             if job_queue is not None:
                 job_queue.run_repeating(
                     send_promotional_message,
-                    interval=10800,  # 3600 segundos = 1 hora
+                    interval=3600,  # 3600 segundos = 1 hora
                     first=10,       # Primeira execução após 10 segundos (teste de deploy)
                     name='promotional_messages'
                 )
