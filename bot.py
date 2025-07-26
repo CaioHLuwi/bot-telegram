@@ -353,6 +353,12 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
         except Exception as e:
             logger.error(f'Erro ao enviar foto final: {e}')
+        
+        # Enviar mensagem final de suporte
+        await context.bot.send_message(
+            chat_id=query.message.chat_id,
+            text="Se você tiver algum problema para receber o pack me chama no @leticiakyoko, vou te responder assim que puder <3"
+        )
     
     elif data.startswith("copy_pix_12_") or data.startswith("copy_pix_5_"):
         # Extrair o código PIX dos dados do usuário
@@ -402,6 +408,12 @@ async def send_content_link(query, context):
         f"Pagamento confirmado! 🎉\n\n"
         f"Entre no meu site de packzinho e baixe diretamente de lá, obrigado por comprar gatinho, caso queira mais só me chamar rsrs. Espero que goste...\n\n"
         f"🔗 Link: {CONTEUDO_LINK}"
+    )
+    
+    # Enviar mensagem final de suporte
+    await context.bot.send_message(
+        chat_id=query.message.chat_id,
+        text="Se você tiver algum problema para receber o pack me chama no @leticiakyoko, vou te responder assim que puder <3"
     )
 
 async def show_metrics(update: Update, context: ContextTypes.DEFAULT_TYPE):
