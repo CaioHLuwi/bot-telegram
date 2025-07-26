@@ -153,6 +153,11 @@ async def start_conversation(update: Update, context: ContextTypes.DEFAULT_TYPE)
         "Hoje, para você eu consigo fazer por só R$ 12,90 algumas fotinhas, vou pensar se mando 10 fotinhas e 2 vídeos, ou quem sabe mais rsrsrs. O que acha? Quer minhas fotinhas?"
     )
     
+    # Mensagem adicional sobre o bônus
+    await update.message.reply_text(
+        "Você ainda recebe o link de um grupo com vários packs de amigas minhas do onlyfans e privacy como BÔNUS mo."
+    )
+    
     # Mudar estado para aguardar resposta
     user_states[user_id] = ConversationState.WAITING_RESPONSE
 
