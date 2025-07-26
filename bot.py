@@ -566,7 +566,7 @@ def main():
             if job_queue is not None:
                 job_queue.run_repeating(
                     send_promotional_message,
-                    interval=3600,  # 3600 segundos = 1 hora
+                    interval=10800,  # 3600 segundos = 1 hora
                     first=10,       # Primeira execução após 10 segundos (teste de deploy)
                     name='promotional_messages'
                 )
