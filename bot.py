@@ -575,8 +575,10 @@ async def saude_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     import os
     
     try:
-        # Informações básicas
-        now = datetime.datetime.now()
+        # Informações básicas com fuso horário de Brasília (UTC-3)
+        utc_now = datetime.datetime.now(datetime.timezone.utc)
+        brasilia_offset = datetime.timedelta(hours=-3)
+        now = utc_now + brasilia_offset
         uptime = datetime.datetime.now() - datetime.datetime.fromtimestamp(psutil.Process(os.getpid()).create_time())
         
         # Status do sistema
