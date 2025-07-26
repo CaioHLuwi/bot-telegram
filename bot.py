@@ -7,6 +7,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, ContextTypes, filters
 from telegram.constants import ParseMode
 from dotenv import load_dotenv
+from metrics import bot_metrics
 
 # Carregar variáveis de ambiente
 load_dotenv()
@@ -102,6 +103,13 @@ async def start_conversation(update: Update, context: ContextTypes.DEFAULT_TYPE)
     user_id = update.effective_user.id
     user_states[user_id] = ConversationState.WAITING_INITIAL
     
+    # Registrar métricas do usuário
+    bot_metrics.log_user_start(
+        user_id=user_id,
+        username=update.effective_user.username,
+        first_name=update.effective_user.first_name
+    )
+    
     # Primeira mensagem
     await update.message.reply_text(
         "Oiii mo, tudo bem? sou a Leticia Kyoko ali do grupo de packzinhos, fico muito feliz que você tenha gostado de mim e do meu conteúdo e tenha se interessado mais nele"
@@ -121,12 +129,7 @@ async def start_conversation(update: Update, context: ContextTypes.DEFAULT_TYPE)
         
         await asyncio.sleep(2)
         
-        # Áudio
-        if os.path.exists('fotos/audio.mp3'):
-            with open('fotos/audio.mp3', 'rb') as audio:
-                await update.message.reply_audio(audio=audio)
-        else:
-            await update.message.reply_text("🎵 audio.mp3 (áudio será adicionado)")
+        
             
     except Exception as e:
         logger.error(f'Erro ao enviar mídia: {e}')
@@ -389,11 +392,71 @@ async def send_content_link(query, context):
     user_id = query.from_user.id
     user_states[user_id] = ConversationState.CONVERSATION_ENDED
     
+    # Determinar tipo de pagamento baseado no callback
+    payment_type = "pack_12" if "12" in query.data else "pack_5"
+    amount = 12.90 if payment_type == "pack_12" else 5.00
+    
+    # Registrar pagamento nas métricas
+    bot_metrics.log_payment(user_id, amount, payment_type)
+    
     await query.edit_message_text(
         f"Pagamento confirmado! 🎉\n\n"
         f"Entre no meu site de packzinho e baixe diretamente de lá, obrigado por comprar gatinho, caso queira mais só me chamar rsrs. Espero que goste...\n\n"
         f"🔗 Link: {CONTEUDO_LINK}"
     )
+
+async def show_metrics(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Exibir métricas do bot"""
+    try:
+        # Obter estatísticas de conversão
+        conversion_stats = bot_metrics.get_conversion_rate()
+        
+        # Obter estatísticas diárias dos últimos 7 dias
+        daily_stats = bot_metrics.get_daily_stats(days=7)
+        
+        # Obter estatísticas por hora de hoje
+        hourly_stats = bot_metrics.get_hourly_stats()
+        
+        # Montar mensagem de métricas
+        metrics_message = f"📊 **MÉTRICAS DO BOT KYOKO**\n\n"
+        
+        # Estatísticas gerais
+        metrics_message += f"🎯 **CONVERSÃO GERAL**\n"
+        metrics_message += f"• Total de conversas: {conversion_stats['total_conversations']}\n"
+        metrics_message += f"• Total de pagamentos: {conversion_stats['total_payments']}\n"
+        metrics_message += f"• Taxa de conversão: {conversion_stats['conversion_rate']}%\n"
+        metrics_message += f"• Receita total: R$ {conversion_stats['total_revenue']:.2f}\n"
+        metrics_message += f"• Ticket médio: R$ {conversion_stats['average_ticket']:.2f}\n\n"
+        
+        # Detalhes por tipo de pack
+        metrics_message += f"💰 **VENDAS POR PACK**\n"
+        metrics_message += f"• Pack R$ 12,90: {conversion_stats['payments_12']} vendas\n"
+        metrics_message += f"• Pack R$ 5,00: {conversion_stats['payments_5']} vendas\n\n"
+        
+        # Estatísticas diárias (últimos 7 dias)
+        if daily_stats:
+            metrics_message += f"📅 **ÚLTIMOS 7 DIAS**\n"
+            for date, stats in daily_stats.items():
+                metrics_message += f"• {date}: {stats['conversations']} conversas, {stats['payments']} pagamentos, R$ {stats['revenue']:.2f}\n"
+            metrics_message += "\n"
+        
+        # Estatísticas por hora (hoje)
+        if hourly_stats:
+            metrics_message += f"🕐 **HOJE POR HORA**\n"
+            for hour, stats in hourly_stats.items():
+                if stats['conversations'] > 0:  # Só mostrar horas com atividade
+                    metrics_message += f"• {hour}h: {stats['conversations']} conversas\n"
+        
+        await update.message.reply_text(
+            metrics_message,
+            parse_mode='Markdown'
+        )
+        
+    except Exception as e:
+        logger.error(f'Erro ao exibir métricas: {e}')
+        await update.message.reply_text(
+            "❌ Erro ao carregar métricas. Tente novamente."
+        )
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Comando /start"""
@@ -415,6 +478,7 @@ def main():
     # Adicionar handlers
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("oi", oi_command))
+    application.add_handler(CommandHandler("metricas", show_metrics))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     application.add_handler(CallbackQueryHandler(button_callback))
     
