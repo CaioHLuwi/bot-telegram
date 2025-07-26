@@ -110,39 +110,23 @@ async def start_conversation(update: Update, context: ContextTypes.DEFAULT_TYPE)
     # Aguardar um pouco antes da próxima mensagem
     await asyncio.sleep(2)
     
-    # Áudio (placeholder)
-    await update.message.reply_text(
-        "🎵 Audio que irei colocar na pasta assim que você cria-la"
-    )
-    
-    await asyncio.sleep(2)
-    
-    # Enviar fotos (placeholder)
+    # Enviar mídia
     try:
         # Foto 1
-        if os.path.exists('fotos/1.jpg'):
-            with open('fotos/1.jpg', 'rb') as photo:
+        if os.path.exists('fotos/1.JPG'):
+            with open('fotos/1.JPG', 'rb') as photo:
                 await update.message.reply_photo(photo=photo)
         else:
-            await update.message.reply_text("📸 1.jpg (foto será adicionada)")
+            await update.message.reply_text("📸 1.JPG (foto será adicionada)")
         
         await asyncio.sleep(2)
         
-        # Foto 2
-        if os.path.exists('fotos/2.jpg'):
-            with open('fotos/2.jpg', 'rb') as photo:
-                await update.message.reply_photo(photo=photo)
+        # Áudio
+        if os.path.exists('fotos/audio.mp3'):
+            with open('fotos/audio.mp3', 'rb') as audio:
+                await update.message.reply_audio(audio=audio)
         else:
-            await update.message.reply_text("📸 2.jpg (foto será adicionada)")
-        
-        await asyncio.sleep(2)
-        
-        # Vídeo 1
-        if os.path.exists('fotos/1.mp4'):
-            with open('fotos/1.mp4', 'rb') as video:
-                await update.message.reply_video(video=video)
-        else:
-            await update.message.reply_text("🎥 1.mp4 (vídeo será adicionado)")
+            await update.message.reply_text("🎵 audio.mp3 (áudio será adicionado)")
             
     except Exception as e:
         logger.error(f'Erro ao enviar mídia: {e}')
