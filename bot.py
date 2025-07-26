@@ -567,10 +567,11 @@ def main():
                 job_queue.run_repeating(
                     send_promotional_message,
                     interval=3600,  # 3600 segundos = 1 hora
-                    first=60,       # Primeira execução após 1 minuto
+                    first=10,       # Primeira execução após 10 segundos (teste de deploy)
                     name='promotional_messages'
                 )
                 logger.info(f"Mensagens automáticas configuradas para o grupo {GROUP_CHAT_ID} (a cada 1 hora)")
+                logger.info("Primeira mensagem promocional será enviada em 10 segundos como teste de deploy")
             else:
                 logger.error("JobQueue não disponível. Instale com: pip install python-telegram-bot[job-queue]")
         except Exception as e:
