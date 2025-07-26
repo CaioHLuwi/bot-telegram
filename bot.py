@@ -338,10 +338,10 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "Aaaaah, tudo bem então gatinho, obrigada. Caso mude de ideia só me falar aqui"
         )
         
-        # Enviar foto 1.JPG
+        # Enviar foto 1.jpg
         try:
-            if os.path.exists('fotos/1.JPG'):
-                with open('fotos/1.JPG', 'rb') as photo:
+            if os.path.exists('fotos/1.jpg'):
+                with open('fotos/1.jpg', 'rb') as photo:
                     await context.bot.send_photo(
                         chat_id=query.message.chat_id,
                         photo=photo
@@ -349,7 +349,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                 await context.bot.send_message(
                     chat_id=query.message.chat_id,
-                    text="📸 1.JPG (foto será adicionada)"
+                    text="📸 1.jpg (foto será adicionada)"
                 )
         except Exception as e:
             logger.error(f'Erro ao enviar foto final: {e}')
