@@ -291,12 +291,12 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             user_states[user_id] = ConversationState.WAITING_PAYMENT_12
             
             context.user_data['payment_id_12'] = payment_data.get('id')
-            context.user_data['pix_code_12'] = payment_data.get('pix_code')
+            context.user_data['pix_code_12'] = payment_data.get('qr_code')
             
             await query.edit_message_text(
                 f"Perfeito amor! 💕\n\n"
                 f"Aqui está seu PIX de R$ 12,90:\n\n"
-                f"`{payment_data.get('pix_code', 'Código PIX não disponível')}`\n\n"
+                f"`{payment_data.get('qr_code', 'Código PIX não disponível')}`\n\n"
                 f"Após o pagamento, clique em 'Confirmar Pagamento' abaixo!",
                 parse_mode=ParseMode.MARKDOWN,
                 reply_markup=InlineKeyboardMarkup([

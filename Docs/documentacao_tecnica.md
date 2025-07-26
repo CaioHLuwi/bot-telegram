@@ -118,14 +118,13 @@ Content-Type: application/json
 
 ##### 1. Criar Pagamento PIX
 
-**Endpoint**: `POST /payments`
+**Endpoint**: `POST /pix/cashIn`
 
 **Requisição**:
 ```json
 {
-  "amount": 12.90,
-  "description": "Pack Kyoko - R$ 12,90",
-  "payment_method": "pix"
+  "value": 1290,
+  "description": "Pack Kyoko - R$ 12,90"
 }
 ```
 
@@ -133,11 +132,10 @@ Content-Type: application/json
 ```json
 {
   "id": "pay_abc123",
-  "amount": 12.90,
+  "value": 1290,
   "description": "Pack Kyoko - R$ 12,90",
   "status": "pending",
-  "pix_code": "00020126580014BR.GOV.BCB.PIX...",
-  "qr_code_url": "https://api.pushinpay.com.br/qr/pay_abc123",
+  "qr_code": "00020126580014BR.GOV.BCB.PIX...",
   "created_at": "2024-01-15T10:30:00Z",
   "expires_at": "2024-01-15T11:30:00Z"
 }
@@ -145,7 +143,7 @@ Content-Type: application/json
 
 ##### 2. Verificar Status do Pagamento
 
-**Endpoint**: `GET /payments/{payment_id}`
+**Endpoint**: `GET /transactions/{transaction_id}`
 
 **Resposta**:
 ```json
@@ -153,7 +151,7 @@ Content-Type: application/json
   "id": "pay_abc123",
   "status": "paid",
   "paid_at": "2024-01-15T10:35:00Z",
-  "amount": 12.90
+  "value": 1290
 }
 ```
 
