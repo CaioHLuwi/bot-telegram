@@ -71,7 +71,7 @@ def create_pix_payment(amount: float, description: str) -> dict:
         logger.error(f'Erro na API Pushin Pay: {e}')
         return None
 
-def check_payment_status(payment_id: str) -> bool:
+def check_payment_status(payment_id: str) -> dict:
     """Verificar status do pagamento"""
     try:
         headers = {
@@ -89,14 +89,19 @@ def check_payment_status(payment_id: str) -> bool:
         
         if response.status_code == 200:
             payment_data = response.json()
-            return payment_data.get('status') == 'paid'
+            status = payment_data.get('status', 'unknown')
+            return {
+                'paid': status == 'paid',
+                'status': status,
+                'data': payment_data
+            }
         else:
             logger.error(f'Erro ao verificar pagamento: {response.status_code} - {response.text}')
-            return False
+            return {'paid': False, 'status': 'error', 'data': None}
             
     except Exception as e:
         logger.error(f'Erro ao verificar pagamento: {e}')
-        return False
+        return {'paid': False, 'status': 'error', 'data': None}
 
 async def start_conversation(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Iniciar conversa com sequência de mensagens"""
@@ -154,6 +159,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Processar mensagens do usuário"""
     user_id = update.effective_user.id
     message_text = update.message.text.lower()
+    
+    # Verificar mensagens de pagamento em qualquer estado
+    payment_keywords = ['paguei', 'já fiz o pix', 'ja fiz o pix', 'fiz o pix', 'pagamento feito', 'pix feito']
+    if any(keyword in message_text for keyword in payment_keywords):
+        await update.message.reply_text(
+            "Se você já fez o pix me manda o comprovante em @leticiakyoko porfavorzinho, vou te mandar o pack assim que conseguir <3"
+        )
+        return
     
     # Se não há estado, iniciar conversa
     if user_id not in user_states:
@@ -380,17 +393,33 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     elif data == "confirm_payment_12":
         payment_id = context.user_data.get('payment_id_12')
-        if payment_id and check_payment_status(payment_id):
-            await send_content_link(query, context)
+        if payment_id:
+            payment_status = check_payment_status(payment_id)
+            if payment_status['paid']:
+                await send_content_link(query, context)
+            else:
+                status = payment_status['status']
+                if status == 'pending' or status == 'CRIADO':
+                    await query.answer("Pagamento ainda não foi processado. Aguarde alguns minutos e tente novamente.", show_alert=True)
+                else:
+                    await query.answer("Você ainda não pagou amor, verifica aí e tenta de novo.", show_alert=True)
         else:
-            await query.answer("Você ainda não pagou amor, verifica aí e tenta de novo.", show_alert=True)
+            await query.answer("Erro: ID do pagamento não encontrado.", show_alert=True)
     
     elif data == "confirm_payment_5":
         payment_id = context.user_data.get('payment_id_5')
-        if payment_id and check_payment_status(payment_id):
-            await send_content_link(query, context)
+        if payment_id:
+            payment_status = check_payment_status(payment_id)
+            if payment_status['paid']:
+                await send_content_link(query, context)
+            else:
+                status = payment_status['status']
+                if status == 'pending' or status == 'CRIADO':
+                    await query.answer("Pagamento ainda não foi processado. Aguarde alguns minutos e tente novamente.", show_alert=True)
+                else:
+                    await query.answer("Você ainda não pagou amor, verifica aí e tenta de novo.", show_alert=True)
         else:
-            await query.answer("Você ainda não pagou amor, verifica aí e tenta de novo.", show_alert=True)
+            await query.answer("Erro: ID do pagamento não encontrado.", show_alert=True)
 
 async def send_content_link(query, context):
     """Enviar link do conteúdo após pagamento confirmado"""
