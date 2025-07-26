@@ -561,14 +561,21 @@ def main():
     
     # Configurar mensagens automáticas (a cada 1 hora)
     if GROUP_CHAT_ID:
-        job_queue = application.job_queue
-        job_queue.run_repeating(
-            send_promotional_message,
-            interval=3600,  # 3600 segundos = 1 hora
-            first=60,       # Primeira execução após 1 minuto
-            name='promotional_messages'
-        )
-        logger.info(f"Mensagens automáticas configuradas para o grupo {GROUP_CHAT_ID} (a cada 1 hora)")
+        try:
+            job_queue = application.job_queue
+            if job_queue is not None:
+                job_queue.run_repeating(
+                    send_promotional_message,
+                    interval=3600,  # 3600 segundos = 1 hora
+                    first=60,       # Primeira execução após 1 minuto
+                    name='promotional_messages'
+                )
+                logger.info(f"Mensagens automáticas configuradas para o grupo {GROUP_CHAT_ID} (a cada 1 hora)")
+            else:
+                logger.error("JobQueue não disponível. Instale com: pip install python-telegram-bot[job-queue]")
+        except Exception as e:
+            logger.error(f"Erro ao configurar mensagens automáticas: {e}")
+            logger.error("Para usar mensagens automáticas, instale: pip install python-telegram-bot[job-queue]")
     else:
         logger.warning("GROUP_CHAT_ID não configurado - mensagens automáticas desabilitadas")
     
