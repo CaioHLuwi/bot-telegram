@@ -3,7 +3,7 @@
   "daily_stats": {
     "2025-07-26": {
       "new_users": 1,
-      "total_conversations": 4,
+      "total_conversations": 5,
       "payments": 0,
       "revenue": 0.0
     }
@@ -13,13 +13,13 @@
       "first_interaction": "2025-07-26T04:11:21.508170",
       "username": "leticiakyoko",
       "first_name": "Leticia",
-      "total_conversations": 4,
+      "total_conversations": 5,
       "payments": [],
-      "last_interaction": "2025-07-26T04:18:45.953305"
+      "last_interaction": "2025-07-26T04:29:53.902086"
     }
   },
   "conversion_stats": {
-    "total_conversations": 4,
+    "total_conversations": 5,
     "payments_12": 0,
     "payments_5": 0,
     "total_revenue": 0.0
@@ -29,7 +29,7 @@
     "1": 0,
     "2": 0,
     "3": 0,
-    "4": 4,
+    "4": 5,
     "5": 0,
     "6": 0,
     "7": 0,
@@ -50,5 +50,5 @@
     "22": 0,
     "23": 0
   },
-  "last_updated": "2025-07-26T04:18:45.953316"
+  "last_updated": "2025-07-26T04:29:53.902101"
 }
