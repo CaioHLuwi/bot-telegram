@@ -166,6 +166,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     message_text = update.message.text.lower()
     
+    # Verificar se é um comando de métricas ou saúde (não ativar fluxo)
+    if message_text.startswith('/metricas') or message_text.startswith('/saude') or message_text.startswith('/groupid'):
+        return
+    
     # Verificar mensagens de pagamento em qualquer estado
     payment_keywords = ['paguei', 'já fiz o pix', 'ja fiz o pix', 'fiz o pix', 'pagamento feito', 'pix feito']
     if any(keyword in message_text for keyword in payment_keywords):
@@ -174,7 +178,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
     
-    # Se não há estado, iniciar conversa
+    # Se não há estado, iniciar conversa automaticamente para qualquer mensagem
     if user_id not in user_states:
         await start_conversation(update, context)
         return
