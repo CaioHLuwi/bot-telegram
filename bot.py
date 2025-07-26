@@ -158,7 +158,7 @@ async def start_conversation(update: Update, context: ContextTypes.DEFAULT_TYPE)
     
     # Oferta
     await update.message.reply_text(
-        "Hoje, para você eu consigo fazer por só R$ 12,90 algumas fotinhas, vou pensar se mando 10 fotinhas e 2 vídeos, ou quem sabe mais rsrsrs"
+        "Hoje, para você eu consigo fazer por só R$ 12,90 algumas fotinhas, vou pensar se mando 10 fotinhas e 2 vídeos, ou quem sabe mais rsrsrs. O que acha? Quer minhas fotinhas?"
     )
     
     # Mudar estado para aguardar resposta
@@ -248,7 +248,8 @@ async def handle_yes_response(update: Update, context: ContextTypes.DEFAULT_TYPE
             f"Após o pagamento, clique em 'Confirmar Pagamento' abaixo!",
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("Confirmar Pagamento", callback_data="confirm_payment_12")]
+                [InlineKeyboardButton("📋 Copiar Código PIX", callback_data=f"copy_pix_12_{payment_data.get('id')}")],
+                [InlineKeyboardButton("✅ Confirmar Pagamento", callback_data="confirm_payment_12")]
             ])
         )
     else:
@@ -300,7 +301,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"Após o pagamento, clique em 'Confirmar Pagamento' abaixo!",
                 parse_mode=ParseMode.MARKDOWN,
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("Confirmar Pagamento", callback_data="confirm_payment_12")]
+                    [InlineKeyboardButton("📋 Copiar Código PIX", callback_data=f"copy_pix_12_{payment_data.get('id')}")],
+                    [InlineKeyboardButton("✅ Confirmar Pagamento", callback_data="confirm_payment_12")]
                 ])
             )
         else:
@@ -334,7 +336,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"Após o pagamento, clique em 'Confirmar Pagamento' abaixo!",
                 parse_mode=ParseMode.MARKDOWN,
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("Confirmar Pagamento", callback_data="confirm_payment_5")]
+                    [InlineKeyboardButton("📋 Copiar Código PIX", callback_data=f"copy_pix_5_{payment_data.get('id')}")],
+                    [InlineKeyboardButton("✅ Confirmar Pagamento", callback_data="confirm_payment_5")]
                 ])
             )
         else:
@@ -365,19 +368,37 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             logger.error(f'Erro ao enviar foto final: {e}')
     
+    elif data.startswith("copy_pix_12_") or data.startswith("copy_pix_5_"):
+        # Extrair o código PIX dos dados do usuário
+        if data.startswith("copy_pix_12_"):
+            pix_code = context.user_data.get('pix_code_12', 'Código não disponível')
+            valor = "R$ 12,90"
+        else:
+            pix_code = context.user_data.get('pix_code_5', 'Código não disponível')
+            valor = "R$ 5,00"
+        
+        await query.answer(f"Código PIX de {valor} copiado! Cole no seu app de pagamento.", show_alert=True)
+        
+        # Enviar o código PIX em uma mensagem separada para facilitar a cópia
+        await context.bot.send_message(
+            chat_id=query.message.chat_id,
+            text=f"📋 **Código PIX para copiar ({valor}):**\n\n`{pix_code}`",
+            parse_mode=ParseMode.MARKDOWN
+        )
+    
     elif data == "confirm_payment_12":
         payment_id = context.user_data.get('payment_id_12')
         if payment_id and check_payment_status(payment_id):
             await send_content_link(query, context)
         else:
-            await query.answer("Pagamento ainda não confirmado. Aguarde alguns minutos e tente novamente.", show_alert=True)
+            await query.answer("Você ainda não pagou amor, verifica aí e tenta de novo.", show_alert=True)
     
     elif data == "confirm_payment_5":
         payment_id = context.user_data.get('payment_id_5')
         if payment_id and check_payment_status(payment_id):
             await send_content_link(query, context)
         else:
-            await query.answer("Pagamento ainda não confirmado. Aguarde alguns minutos e tente novamente.", show_alert=True)
+            await query.answer("Você ainda não pagou amor, verifica aí e tenta de novo.", show_alert=True)
 
 async def send_content_link(query, context):
     """Enviar link do conteúdo após pagamento confirmado"""
