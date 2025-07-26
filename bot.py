@@ -158,6 +158,21 @@ async def start_conversation(update: Update, context: ContextTypes.DEFAULT_TYPE)
         "Você ainda recebe o link de um grupo com vários packs de amigas minhas do onlyfans e privacy como BÔNUS mo."
     )
     
+    # Aguardar 5 segundos antes de enviar os botões
+    await asyncio.sleep(5)
+    
+    # Enviar botões automaticamente
+    keyboard = [
+        [InlineKeyboardButton("simm amor", callback_data="sim_12")],
+        [InlineKeyboardButton("hoje não", callback_data="nao_12")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await update.message.reply_text(
+        "O que me diz?",
+        reply_markup=reply_markup
+    )
+    
     # Mudar estado para aguardar resposta
     user_states[user_id] = ConversationState.WAITING_RESPONSE
 
