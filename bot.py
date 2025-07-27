@@ -54,6 +54,7 @@ class ConversationState:
     WAITING_QUESTION_TIMEOUT = 'waiting_question_timeout'
     WAITING_PAYMENT_12 = 'waiting_payment_12'
     WAITING_PAYMENT_5 = 'waiting_payment_5'
+    WAITING_PAYMENT_10 = 'waiting_payment_10'
     CONVERSATION_ENDED = 'conversation_ended'
 
 def create_pix_payment(amount: float, description: str) -> dict:
@@ -369,11 +370,14 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text="Se você tiver algum problema para receber o pack me chama no @leticiakyoko, vou te responder assim que puder <3"
         )
     
-    elif data.startswith("copy_pix_12_") or data.startswith("copy_pix_5_"):
+    elif data.startswith("copy_pix_12_") or data.startswith("copy_pix_5_") or data.startswith("copy_pix_10_"):
         # Extrair o código PIX dos dados do usuário
         if data.startswith("copy_pix_12_"):
             pix_code = context.user_data.get('pix_code_12', 'Código não disponível')
             valor = "R$ 12,90"
+        elif data.startswith("copy_pix_10_"):
+            pix_code = context.user_data.get('pix_code_10', 'Código não disponível')
+            valor = "R$ 10,00"
         else:
             pix_code = context.user_data.get('pix_code_5', 'Código não disponível')
             valor = "R$ 5,90"
@@ -416,6 +420,21 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     await query.answer("Você ainda não pagou amor, verifica aí e tenta de novo.", show_alert=True)
         else:
             await query.answer("Erro: ID do pagamento não encontrado.", show_alert=True)
+    
+    elif data == "confirm_payment_10":
+        payment_id = context.user_data.get('payment_id_10')
+        if payment_id:
+            payment_status = check_payment_status(payment_id)
+            if payment_status['paid']:
+                await send_content_link(query, context)
+            else:
+                status = payment_status['status']
+                if status == 'pending' or status == 'CRIADO':
+                    await query.answer("Pagamento ainda não foi processado. Aguarde alguns minutos e tente novamente.", show_alert=True)
+                else:
+                    await query.answer("Você ainda não pagou amor, verifica aí e tenta de novo.", show_alert=True)
+        else:
+            await query.answer("Erro: ID do pagamento não encontrado.", show_alert=True)
 
 async def send_content_link(query, context):
     """Enviar link do conteúdo após pagamento confirmado"""
@@ -423,8 +442,15 @@ async def send_content_link(query, context):
     user_states[user_id] = ConversationState.CONVERSATION_ENDED
     
     # Determinar tipo de pagamento baseado no callback
-    payment_type = "pack_12" if "12" in query.data else "pack_5"
-    amount = 12.90 if payment_type == "pack_12" else 5.00
+    if "12" in query.data:
+        payment_type = "pack_12"
+        amount = 12.90
+    elif "10" in query.data:
+        payment_type = "pack_10"
+        amount = 10.00
+    else:
+        payment_type = "pack_5"
+        amount = 5.90
     
     # Registrar pagamento nas métricas
     bot_metrics.log_payment(user_id, amount, payment_type)
@@ -697,6 +723,46 @@ async def get_group_id_command(update: Update, context: ContextTypes.DEFAULT_TYP
     
     await update.message.reply_text(message, parse_mode='Markdown')
 
+async def pix_10_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Comando /10 para gerar PIX de R$ 10,00"""
+    user_id = update.effective_user.id
+    
+    try:
+        # Gerar PIX de R$ 10,00
+        payment_data = create_pix_payment(10.00, "Pack Kyoko - R$ 10,00")
+        
+        if payment_data:
+            user_states[user_id] = ConversationState.WAITING_PAYMENT_10
+            
+            # Salvar dados do pagamento
+            context.user_data['payment_id_10'] = payment_data.get('id')
+            context.user_data['pix_code_10'] = payment_data.get('qr_code')
+            
+            await update.message.reply_text(
+                f"💰 **PIX de R$ 10,00 gerado!**\n\n"
+                f"Aqui está seu código PIX:\n\n"
+                f"`{payment_data.get('qr_code', 'Código PIX não disponível')}`\n\n"
+                f"Após o pagamento, clique em 'Confirmar Pagamento'!",
+                parse_mode=ParseMode.MARKDOWN,
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("📋 Copiar Código PIX", callback_data=f"copy_pix_10_{payment_data.get('id')}")],
+                    [InlineKeyboardButton("✅ Confirmar Pagamento", callback_data="confirm_payment_10")]
+                ])
+            )
+            
+            logger.info(f"PIX de R$ 10,00 gerado para usuário {user_id}: {payment_data.get('id')}")
+        else:
+            await update.message.reply_text(
+                "❌ Ops! Houve um erro ao gerar o PIX de R$ 10,00. Tente novamente em alguns minutos."
+            )
+            logger.error(f"Erro ao gerar PIX de R$ 10,00 para usuário {user_id}")
+            
+    except Exception as e:
+        await update.message.reply_text(
+            "❌ Erro interno. Tente novamente mais tarde."
+        )
+        logger.error(f"Erro no comando /10 para usuário {user_id}: {e}")
+
 async def saude_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Comando para verificar se o bot está funcionando normalmente"""
     import datetime
@@ -735,6 +801,7 @@ async def saude_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message += "🔄 **Comandos Disponíveis:**\n"
         message += "• `/start` - Iniciar bot\n"
         message += "• `/oi` - Saudação\n"
+        message += "• `/10` - Gerar PIX de R$ 10,00\n"
         message += "• `/metricas` - Ver estatísticas\n"
         message += "• `/groupid` - ID do grupo\n"
         message += "• `/saude` - Status do bot\n\n"
@@ -772,6 +839,7 @@ def main():
     # Adicionar handlers
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("oi", oi_command))
+    application.add_handler(CommandHandler("10", pix_10_command))
     application.add_handler(CommandHandler("metricas", show_metrics))
     application.add_handler(CommandHandler("groupid", get_group_id_command))
     application.add_handler(CommandHandler("saude", saude_command))
