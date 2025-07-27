@@ -2,6 +2,16 @@
 
 ## 📋 Resumo das Mudanças
 
+### ✅ Implementado
+1. **Simplificação do fluxo inicial**: Removidas mensagens desnecessárias
+2. **PIX automático**: Geração automática de PIX de R$ 12,90 no início
+3. **Botão direto**: Adicionado botão "Quero o de 5,90" para conversão rápida
+4. **Resposta "hoje não"**: Implementado envio de vídeo 1.mp4
+5. **Limpeza de código**: Removidas funções obsoletas
+6. **Melhoria na cópia de PIX**: Envio apenas do código PIX limpo
+7. **Conteúdo completo**: Envio de foto 1.jpg + vídeo 1.mp4 no callback "não quero"
+8. **Interface simplificada**: Removido botão "hoje não" dos botões iniciais
+
 O fluxo de conversação do bot foi completamente otimizado para aumentar a taxa de conversão e melhorar a experiência do usuário.
 
 ## 🔄 Fluxo Anterior vs Novo Fluxo
@@ -28,6 +38,21 @@ O fluxo de conversação do bot foi completamente otimizado para aumentar a taxa
    - ✅ Confirmar Pagamento
    - **Quero o de 5,90** (novo)
    - **hoje não** (novo)
+
+## 🔄 Fluxo Atual (Otimizado)
+
+1. **Início da conversa**:
+   - Geração automática de PIX R$ 12,90
+   - Exibição de 3 botões principais:
+     - "📋 Copiar Código PIX"
+     - "✅ Confirmar Pagamento" 
+     - "Quero o de 5,90"
+
+2. **Ações disponíveis**:
+   - **Copiar PIX**: Envia apenas o código PIX limpo para fácil cópia
+   - **Confirmar**: Envia link do conteúdo
+   - **Opção 5,90**: Gera PIX alternativo
+   - **Hoje não**: Envia foto 1.jpg + vídeo 1.mp4 sequencialmente
 
 ## 🎯 Benefícios da Otimização
 
