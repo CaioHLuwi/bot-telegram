@@ -181,8 +181,7 @@ async def start_conversation(update: Update, context: ContextTypes.DEFAULT_TYPE)
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("📋 Copiar Código PIX", callback_data=f"copy_pix_12_{payment_data.get('id')}")],
                 [InlineKeyboardButton("✅ Confirmar Pagamento", callback_data="confirm_payment_12")],
-                [InlineKeyboardButton("Quero o de 5,90", callback_data="pode_ser_5")],
-                [InlineKeyboardButton("hoje não", callback_data="hoje_nao")]
+                [InlineKeyboardButton("Quero o de 5,90", callback_data="pode_ser_5")]
             ])
         )
     else:
@@ -347,6 +346,22 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
         except Exception as e:
             logger.error(f'Erro ao enviar foto final: {e}')
+        
+        # Enviar vídeo 1.mp4
+        try:
+            if os.path.exists('fotos/1.mp4'):
+                with open('fotos/1.mp4', 'rb') as video:
+                    await context.bot.send_video(
+                        chat_id=query.message.chat_id,
+                        video=video
+                    )
+            else:
+                await context.bot.send_message(
+                    chat_id=query.message.chat_id,
+                    text="🎥 1.mp4 (vídeo será adicionado)"
+                )
+        except Exception as e:
+            logger.error(f'Erro ao enviar vídeo final: {e}')
         
         # Enviar mensagem final de suporte
         await context.bot.send_message(
