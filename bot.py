@@ -152,45 +152,43 @@ async def start_conversation(update: Update, context: ContextTypes.DEFAULT_TYPE)
             await update.message.reply_text("📸 4.jpg (foto será adicionada)")
         
         await asyncio.sleep(2)
-        
-        
             
     except Exception as e:
         logger.error(f'Erro ao enviar mídia: {e}')
     
-    await asyncio.sleep(3)
-    
-    # Mensagem sobre o pack
+    # Oferta direta com PIX
     await update.message.reply_text(
-        "O que acha? você vai receber isso e muito mais (rsrs) no seu telegram assim que fizer o pix para pegar seu packzinho comigo"
+        "No meu pack eu te entrego 26 fotinhas deliciosas e 7 vídeos explicitos para você gozar comigo rsrsrs. Tudo isso por só R$ 12,90, te envio tudo na hora no privado do telegram."
     )
     
     await asyncio.sleep(2)
     
-    # Oferta
-    await update.message.reply_text(
-        "Que legal, você é meu primeiro cliente hoje! No meu pack eu te entrego 26 fotinhas deliciosas e 7 vídeos explicitos para você gozar comigo rsrsrs. Tudo isso por só R$ 12,90, te envio tudo na hora no privado do telegram. Quer meu anjo?"
-    )
+    # Gerar PIX de R$ 12,90 automaticamente
+    payment_data = create_pix_payment(12.90, "Pack Kyoko - R$ 12,90")
     
-    # Mensagem adicional sobre o bônus
-    await update.message.reply_text(
-        "Você ainda recebe o link de um grupo com vários packs de amigas minhas do onlyfans e privacy como BÔNUS mo."
-    )
-    
-    # Aguardar 5 segundos antes de enviar os botões
-    await asyncio.sleep(5)
-    
-    # Enviar botões automaticamente
-    keyboard = [
-        [InlineKeyboardButton("simm amor", callback_data="sim_12")],
-        [InlineKeyboardButton("hoje não", callback_data="nao_12")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    
-    await update.message.reply_text(
-        "O que me diz?",
-        reply_markup=reply_markup
-    )
+    if payment_data:
+        user_states[user_id] = ConversationState.WAITING_PAYMENT_12
+        
+        # Salvar dados do pagamento
+        context.user_data['payment_id_12'] = payment_data.get('id')
+        context.user_data['pix_code_12'] = payment_data.get('qr_code')
+        
+        await update.message.reply_text(
+            f"Aqui está seu PIX de R$ 12,90:\n\n"
+            f"`{payment_data.get('qr_code', 'Código PIX não disponível')}`\n\n"
+            f"Após o pagamento, clique em 'Confirmar Pagamento'!",
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("📋 Copiar Código PIX", callback_data=f"copy_pix_12_{payment_data.get('id')}")],
+                [InlineKeyboardButton("✅ Confirmar Pagamento", callback_data="confirm_payment_12")],
+                [InlineKeyboardButton("Quero o de 5,90", callback_data="pode_ser_5")],
+                [InlineKeyboardButton("hoje não", callback_data="hoje_nao")]
+            ])
+        )
+    else:
+        await update.message.reply_text(
+            "Ops! Houve um erro ao gerar o PIX. Tente novamente em alguns minutos."
+        )
     
     # Mudar estado para aguardar resposta
     user_states[user_id] = ConversationState.WAITING_RESPONSE
@@ -220,104 +218,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     current_state = user_states[user_id]
     
     if current_state == ConversationState.WAITING_RESPONSE:
-        # Verificar se é uma pergunta
-        if '?' in update.message.text:
-            user_states[user_id] = ConversationState.WAITING_QUESTION_TIMEOUT
-            # Aguardar 2 minutos antes de responder
-            context.job_queue.run_once(
-                send_buttons_after_question,
-                120,  # 2 minutos
-                data={'chat_id': update.effective_chat.id, 'user_id': user_id}
-            )
-            return
-        
-        # Verificar resposta sim/não
-        if 'sim' in message_text or 'si' in message_text:
-            await handle_yes_response(update, context)
-        elif 'não' in message_text or 'nao' in message_text or 'no' in message_text:
-            await handle_no_response(update, context)
-        else:
-            # Enviar botões diretamente se não for sim/não claro
-            await send_initial_buttons(update, context)
-
-async def send_buttons_after_question(context: ContextTypes.DEFAULT_TYPE):
-    """Enviar botões após timeout de pergunta"""
-    job_data = context.job.data
-    chat_id = job_data['chat_id']
-    user_id = job_data['user_id']
-    
-    if user_id in user_states and user_states[user_id] == ConversationState.WAITING_QUESTION_TIMEOUT:
-        await send_initial_buttons_to_chat(context, chat_id, user_id)
-
-async def send_initial_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Enviar botões iniciais"""
-    user_id = update.effective_user.id
-    await send_initial_buttons_to_chat(context, update.effective_chat.id, user_id)
-
-async def send_initial_buttons_to_chat(context: ContextTypes.DEFAULT_TYPE, chat_id: int, user_id: int):
-    """Enviar botões para um chat específico"""
-    keyboard = [
-        [InlineKeyboardButton("simm amor", callback_data="sim_12")],
-        [InlineKeyboardButton("hoje não", callback_data="nao_12")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    
-    await context.bot.send_message(
-        chat_id=chat_id,
-        text="Aguardando sua resposta...",
-        reply_markup=reply_markup
-    )
-    
-    user_states[user_id] = ConversationState.WAITING_RESPONSE
-
-async def handle_yes_response(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Processar resposta positiva"""
-    user_id = update.effective_user.id
-    
-    # Gerar PIX de R$ 12,90
-    payment_data = create_pix_payment(12.90, "Pack Kyoko - R$ 12,90")
-    
-    if payment_data:
-        user_states[user_id] = ConversationState.WAITING_PAYMENT_12
-        
-        # Salvar dados do pagamento
-        context.user_data['payment_id_12'] = payment_data.get('id')
-        context.user_data['pix_code_12'] = payment_data.get('qr_code')
-        
+        # Com o novo fluxo, as respostas são tratadas pelos botões inline
         await update.message.reply_text(
-            f"Perfeito amor! 💕\n\n"
-            f"Aqui está seu PIX de R$ 12,90:\n\n"
-            f"`{payment_data.get('qr_code', 'Código PIX não disponível')}`\n\n"
-            f"Após o pagamento, clique em 'Confirmar Pagamento' abaixo!",
-            parse_mode=ParseMode.MARKDOWN,
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("📋 Copiar Código PIX", callback_data=f"copy_pix_12_{payment_data.get('id')}")],
-                [InlineKeyboardButton("✅ Confirmar Pagamento", callback_data="confirm_payment_12")]
-            ])
-        )
-    else:
-        await update.message.reply_text(
-            "Ops! Houve um erro ao gerar o PIX. Tente novamente em alguns minutos."
+            "Use os botões acima para escolher sua opção! 😊"
         )
 
-async def handle_no_response(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Processar resposta negativa"""
-    user_id = update.effective_user.id
-    
-    await update.message.reply_text(
-        "E se eu fizer mais baratinho para você mo? o que acha? consigo fazer até por R$ 5,90 porque realmente gostei muito de ter vc aqui comigo <3"
-    )
-    
-    keyboard = [
-        [InlineKeyboardButton("Pode ser", callback_data="pode_ser_5")],
-        [InlineKeyboardButton("Não quero mesmo", callback_data="nao_quero")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    
-    await update.message.reply_text(
-        "O que me diz?",
-        reply_markup=reply_markup
-    )
+# Funções de botões removidas - não são mais necessárias com o novo fluxo
+
+# Funções removidas - fluxo agora é direto na start_conversation
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Processar cliques nos botões"""
@@ -387,6 +295,35 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.edit_message_text(
                 "Ops! Houve um erro ao gerar o PIX. Tente novamente em alguns minutos."
             )
+    
+    elif data == "hoje_nao":
+        user_states[user_id] = ConversationState.CONVERSATION_ENDED
+        
+        await query.edit_message_text(
+            "Tudo bem amor, sem problemas!"
+        )
+        
+        # Enviar vídeo 1.mp4
+        try:
+            if os.path.exists('fotos/1.mp4'):
+                with open('fotos/1.mp4', 'rb') as video:
+                    await context.bot.send_video(
+                        chat_id=query.message.chat_id,
+                        video=video
+                    )
+            else:
+                await context.bot.send_message(
+                    chat_id=query.message.chat_id,
+                    text="🎥 1.mp4 (vídeo será adicionado)"
+                )
+        except Exception as e:
+            logger.error(f'Erro ao enviar vídeo: {e}')
+        
+        # Enviar mensagem final
+        await context.bot.send_message(
+            chat_id=query.message.chat_id,
+            text="ok, se mudar de ideia... já sabe mo"
+        )
     
     elif data == "nao_quero":
         user_states[user_id] = ConversationState.CONVERSATION_ENDED
