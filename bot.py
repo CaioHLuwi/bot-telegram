@@ -363,12 +363,12 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             pix_code = context.user_data.get('pix_code_5', 'Código não disponível')
             valor = "R$ 5,90"
         
-        await query.answer(f"Código PIX de {valor} copiado! Cole no seu app de pagamento.", show_alert=True)
+        await query.answer(f"Código PIX de {valor} enviado abaixo! Selecione e copie.", show_alert=True)
         
-        # Enviar o código PIX em uma mensagem separada para facilitar a cópia
+        # Enviar apenas o código PIX sem texto adicional para facilitar a cópia
         await context.bot.send_message(
             chat_id=query.message.chat_id,
-            text=f"📋 **Código PIX para copiar ({valor}):**\n\n`{pix_code}`",
+            text=f"`{pix_code}`",
             parse_mode=ParseMode.MARKDOWN
         )
     
@@ -492,7 +492,7 @@ async def send_promotional_message(context: ContextTypes.DEFAULT_TYPE):
     """Enviar mensagem promocional automática para o grupo"""
     try:
         if GROUP_CHAT_ID:
-            promotional_text = "Super promo, pack apenas hoje por R$ 12,90 ❤️‍🔥 Vem se divertir comigo amor @kyoko_uwubot"
+            promotional_text = "Super promo, pack apenas hoje por R$ 5,90 ❤️‍🔥 Vem se divertir comigo amor @kyoko_uwubot - 26 fotos, 8 vídeos todoss peladinha para você."
             
             await context.bot.send_message(
                 chat_id=GROUP_CHAT_ID,
