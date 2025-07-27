@@ -7,7 +7,7 @@ BOT_PHOTO_PATH = "fotos/bot-foot.png"
 # Mensagens do Bot
 MESSAGES = {
     'greeting': "Oiii mo, tudo bem? sou a Leticia Kyoko ali do grupo de packzinhos, fico muito feliz que você tenha gostado de mim e do meu conteúdo e tenha se interessado mais nele",
-    'price_offer': "Que legal, você é meu primeiro cliente hoje! No meu pack eu te entrego 26 fotinhas deliciosas e 7 vídeos explicitos para você gozar comigo rsrsrs. Tudo isso por só R$ 12,90, te envio tudo na hora no privado do telegram. Quer?",
+    'price_offer': "Que legal, você é meu primeiro cliente hoje! Quer o vídeo sem censura mo? No meu pack eu te entrego 26 fotinhas deliciosas e 7 vídeos explicitos para você gozar comigo rsrsrs. Tudo isso por só R$ 12,90, te envio tudo na hora no privado do telegram. Quer?",
     'pack_description': "O que acha? você vai receber isso e muito mais (rsrs) no seu telegram assim que fizer o pix para pegar seu packzinho comigo",
     'discount_offer': "E se eu fizer mais baratinho para você mo? o que acha? consigo fazer até por R$ 5,90 porque realmente gostei muito de ter vc aqui comigo <3",
     'goodbye': "Aaaaah, tudo bem então gatinho, obrigada. Caso mude de ideia só me falar aqui",

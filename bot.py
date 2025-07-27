@@ -158,7 +158,7 @@ async def start_conversation(update: Update, context: ContextTypes.DEFAULT_TYPE)
     
     # Oferta direta com PIX
     await update.message.reply_text(
-        "No meu pack eu te entrego 26 fotinhas deliciosas e 7 vídeos explicitos para você gozar comigo rsrsrs. Tudo isso por só R$ 12,90, te envio tudo na hora no privado do telegram."
+        "Quer o vídeo sem censura mo? No meu pack eu te entrego 26 fotinhas deliciosas e 7 vídeos explicitos para você gozar comigo rsrsrs. Tudo isso por só R$ 12,90, te envio tudo na hora no privado do telegram."
     )
     
     await asyncio.sleep(2)
