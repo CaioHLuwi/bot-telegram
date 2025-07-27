@@ -391,6 +391,58 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode=ParseMode.MARKDOWN
         )
     
+    elif data == "payment_method_pix_10":
+        # Usuário escolheu PIX para R$ 10,00
+        try:
+            payment_data = create_pix_payment(10.00, "Pack Kyoko - R$ 10,00")
+            
+            if payment_data:
+                user_states[user_id] = ConversationState.WAITING_PAYMENT_10
+                
+                context.user_data['payment_id_10'] = payment_data.get('id')
+                context.user_data['pix_code_10'] = payment_data.get('qr_code')
+                
+                message = f"💰 **PIX de R$ 10,00 gerado!**\n\n"
+                message += f"**Código PIX:**\n`{payment_data.get('qr_code', 'Código PIX não disponível')}`\n\n"
+                message += "📱 **Como pagar:**\n"
+                message += "1. Copie o código PIX\n"
+                message += "2. Abra seu banco\n"
+                message += "3. Cole o código na área PIX\n"
+                message += "4. Confirme o pagamento\n"
+                message += "5. Clique em 'Confirmar pagamento'\n\n"
+                message += "✅ Se quiser, pode usar esse link também, é 100% seguro e te dou 7 dias de garantia no meu pack:\n"
+                message += "`https://pay.cakto.com.br/35ehh7w_498700`\n\n"
+                message += "⏰ **Pagamento expira em 30 minutos**"
+                
+                await query.edit_message_text(
+                    message,
+                    parse_mode=ParseMode.MARKDOWN,
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("📋 Copiar código PIX", callback_data=f"copy_pix_10_{payment_data.get('id')}")],
+                        [InlineKeyboardButton("✅ Confirmar pagamento", callback_data="confirm_payment_10")]
+                    ])
+                )
+            else:
+                await query.edit_message_text("❌ Erro ao gerar pagamento. Tente novamente.")
+        except Exception as e:
+            logger.error(f"Erro ao gerar PIX de R$ 10,00: {e}")
+            await query.edit_message_text("❌ Erro interno. Tente novamente mais tarde.")
+    
+    elif data == "payment_method_card_10":
+        # Usuário escolheu cartão para R$ 10,00
+        message = "💳 **Pagamento com Cartão de Crédito**\n\n"
+        message += "✅ **Benefícios da Cakto:**\n"
+        message += "✅ Pagamento 100% seguro\n"
+        message += "✅ 7 dias de garantia\n"
+        message += "✅ Parcelamento disponível\n"
+        message += "✅ Processamento instantâneo\n"
+        message += "✅ Suporte 24h\n\n"
+        message += "🔗 **Link para pagamento:**\n"
+        message += "`https://pay.cakto.com.br/35ehh7w_498700`\n\n"
+        message += "Após o pagamento, você receberá o pack automaticamente!"
+        
+        await query.edit_message_text(message, parse_mode=ParseMode.MARKDOWN)
+    
     elif data == "confirm_payment_12":
         payment_id = context.user_data.get('payment_id_12')
         if payment_id:
@@ -724,44 +776,28 @@ async def get_group_id_command(update: Update, context: ContextTypes.DEFAULT_TYP
     await update.message.reply_text(message, parse_mode='Markdown')
 
 async def pix_10_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Comando /10 para gerar PIX de R$ 10,00"""
-    user_id = update.effective_user.id
-    
+    """Comando para gerar pagamento de R$ 10,00 - pergunta forma de pagamento"""
     try:
-        # Gerar PIX de R$ 10,00
-        payment_data = create_pix_payment(10.00, "Pack Kyoko - R$ 10,00")
+        user_id = update.effective_user.id
         
-        if payment_data:
-            user_states[user_id] = ConversationState.WAITING_PAYMENT_10
-            
-            # Salvar dados do pagamento
-            context.user_data['payment_id_10'] = payment_data.get('id')
-            context.user_data['pix_code_10'] = payment_data.get('qr_code')
-            
-            await update.message.reply_text(
-                f"💰 **PIX de R$ 10,00 gerado!**\n\n"
-                f"Aqui está seu código PIX:\n\n"
-                f"`{payment_data.get('qr_code', 'Código PIX não disponível')}`\n\n"
-                f"Após o pagamento, clique em 'Confirmar Pagamento'!",
-                parse_mode=ParseMode.MARKDOWN,
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("📋 Copiar Código PIX", callback_data=f"copy_pix_10_{payment_data.get('id')}")],
-                    [InlineKeyboardButton("✅ Confirmar Pagamento", callback_data="confirm_payment_10")]
-                ])
-            )
-            
-            logger.info(f"PIX de R$ 10,00 gerado para usuário {user_id}: {payment_data.get('id')}")
-        else:
-            await update.message.reply_text(
-                "❌ Ops! Houve um erro ao gerar o PIX de R$ 10,00. Tente novamente em alguns minutos."
-            )
-            logger.error(f"Erro ao gerar PIX de R$ 10,00 para usuário {user_id}")
-            
+        # Criar botões para escolher forma de pagamento
+        keyboard = [
+            [InlineKeyboardButton("💳 PIX", callback_data="payment_method_pix_10")],
+            [InlineKeyboardButton("💰 Cartão de Crédito", callback_data="payment_method_card_10")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        message = "💰 **Pagamento de R$ 10,00**\n\n"
+        message += "Escolha sua forma de pagamento preferida:\n\n"
+        message += "✅ **PIX** - Instantâneo e seguro\n"
+        message += "✅ **Cartão** - Parcelamento disponível\n\n"
+        message += "Qual você prefere?"
+        
+        await update.message.reply_text(message, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
+        
     except Exception as e:
-        await update.message.reply_text(
-            "❌ Erro interno. Tente novamente mais tarde."
-        )
-        logger.error(f"Erro no comando /10 para usuário {user_id}: {e}")
+        logger.error(f"Erro no comando /10: {e}")
+        await update.message.reply_text("❌ Erro interno. Tente novamente mais tarde.")
 
 async def saude_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Comando para verificar se o bot está funcionando normalmente"""
