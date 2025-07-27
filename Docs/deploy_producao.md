@@ -185,7 +185,7 @@ Bot Kyoko: 📊 MÉTRICAS DO BOT KYOKO
 
 💰 VENDAS POR PACK
 • Pack R$ 12,90: 22 vendas
-• Pack R$ 5,00: 12 vendas
+• Pack R$ 5,90: 12 vendas
 
 📅 ÚLTIMOS 7 DIAS
 • 2025-01-20: 15 conversas, 4 pagamentos, R$ 46.60
@@ -207,7 +207,7 @@ Bot Kyoko: 📊 MÉTRICAS DO BOT KYOKO
 
 **Ticket Médio:**
 - Próximo a R$ 12,90 = Mais vendas do pack completo
-- Próximo a R$ 5,00 = Mais vendas com desconto
+- Próximo a R$ 5,90 = Mais vendas com desconto
 - Entre R$ 8-10 = Equilíbrio bom
 
 **Horários de Pico:**

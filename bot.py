@@ -169,7 +169,7 @@ async def start_conversation(update: Update, context: ContextTypes.DEFAULT_TYPE)
     
     # Oferta
     await update.message.reply_text(
-        "Hoje, para você eu consigo fazer por só R$ 12,90 algumas fotinhas, vou pensar se mando 10 fotinhas e 2 vídeos, ou quem sabe mais rsrsrs. O que acha? Quer minhas fotinhas?"
+        "Que legal, você é meu primeiro cliente hoje! No meu pack eu te entrego 26 fotinhas deliciosas e 7 vídeos explicitos para você gozar comigo rsrsrs. Tudo isso por só R$ 12,90, te envio tudo na hora no privado do telegram. Quer meu anjo?"
     )
     
     # Mensagem adicional sobre o bônus
@@ -305,7 +305,7 @@ async def handle_no_response(update: Update, context: ContextTypes.DEFAULT_TYPE)
     user_id = update.effective_user.id
     
     await update.message.reply_text(
-        "E se eu fizer mais baratinho para você mo? o que acha? consigo fazer até por R$ 05,00 porque realmente gostei muito de ter vc aqui comigo <3"
+        "E se eu fizer mais baratinho para você mo? o que acha? consigo fazer até por R$ 5,90 porque realmente gostei muito de ter vc aqui comigo <3"
     )
     
     keyboard = [
@@ -355,7 +355,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     elif data == "nao_12":
         await query.edit_message_text(
-            "E se eu fizer mais baratinho para você mo? o que acha? consigo fazer até por R$ 05,00 porque realmente gostei muito de ter vc aqui comigo <3",
+            "E se eu fizer mais baratinho para você mo? o que acha? consigo fazer até por R$ 5,90 porque realmente gostei muito de ter vc aqui comigo <3",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("Pode ser", callback_data="pode_ser_5")],
                 [InlineKeyboardButton("Não quero mesmo", callback_data="nao_quero")]
@@ -363,8 +363,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     
     elif data == "pode_ser_5":
-        # Gerar PIX de R$ 5,00
-        payment_data = create_pix_payment(5.00, "Pack Kyoko - R$ 5,00")
+        # Gerar PIX de R$ 5,90
+        payment_data = create_pix_payment(5.90, "Pack Kyoko - R$ 5,90")
         
         if payment_data:
             user_states[user_id] = ConversationState.WAITING_PAYMENT_5
@@ -374,7 +374,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             await query.edit_message_text(
                 f"Eba! Que bom que aceitou! 💕\n\n"
-                f"Aqui está seu PIX de R$ 5,00:\n\n"
+                f"Aqui está seu PIX de R$ 5,90:\n\n"
                 f"`{payment_data.get('qr_code', 'Código PIX não disponível')}`\n\n"
                 f"Após o pagamento, clique em 'Confirmar Pagamento' abaixo!",
                 parse_mode=ParseMode.MARKDOWN,
@@ -424,7 +424,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             valor = "R$ 12,90"
         else:
             pix_code = context.user_data.get('pix_code_5', 'Código não disponível')
-            valor = "R$ 5,00"
+            valor = "R$ 5,90"
         
         await query.answer(f"Código PIX de {valor} copiado! Cole no seu app de pagamento.", show_alert=True)
         
@@ -515,7 +515,7 @@ async def show_metrics(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Detalhes por tipo de pack
         metrics_message += f"💰 **VENDAS POR PACK**\n"
         metrics_message += f"• Pack R$ 12,90: {conversion_stats['payments_12']} vendas\n"
-        metrics_message += f"• Pack R$ 5,00: {conversion_stats['payments_5']} vendas\n\n"
+        metrics_message += f"• Pack R$ 5,90: {conversion_stats['payments_5']} vendas\n\n"
         
         # Estatísticas diárias (últimos 7 dias)
         if daily_stats and daily_stats['days']:

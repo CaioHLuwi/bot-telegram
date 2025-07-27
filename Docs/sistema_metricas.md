@@ -25,7 +25,7 @@ Para visualizar as métricas do bot, use o comando:
 
 #### 💰 Vendas por Tipo de Pack
 - **Pack R$ 12,90**: Quantidade de vendas do pack completo
-- **Pack R$ 5,00**: Quantidade de vendas do pack com desconto
+- **Pack R$ 5,90**: Quantidade de vendas do pack com desconto
 
 #### 📅 Estatísticas Diárias
 - Últimos 7 dias com:
@@ -51,7 +51,7 @@ Para visualizar as métricas do bot, use o comando:
 
 💰 VENDAS POR PACK
 • Pack R$ 12,90: 8 vendas
-• Pack R$ 5,00: 4 vendas
+• Pack R$ 5,90: 4 vendas
 
 📅 ÚLTIMOS 7 DIAS
 • 2025-01-20: 5 conversas, 2 pagamentos, R$ 25.80
@@ -92,7 +92,7 @@ Para visualizar as métricas do bot, use o comando:
 ### Ticket Médio
 - Indica se mais pessoas estão comprando o pack completo ou com desconto
 - Valor próximo a R$ 12,90 = mais vendas do pack completo
-- Valor próximo a R$ 5,00 = mais vendas com desconto
+- Valor próximo a R$ 5,90 = mais vendas com desconto
 
 ### Horários de Pico
 - Identifica os melhores horários para promover o bot

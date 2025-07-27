@@ -11,7 +11,7 @@ O **Bot Kyoko** é um assistente virtual automatizado que funciona no aplicativo
 2. O bot responde automaticamente com uma sequência de mensagens
 3. Mostra fotos e vídeos de exemplo
 4. Oferece um "pack" por R$ 12,90
-5. Se a pessoa recusar, oferece desconto para R$ 5,00
+5. Se a pessoa recusar, oferece desconto para R$ 5,90
 6. Gera um código PIX automaticamente para pagamento
 7. Após o pagamento, envia um link para download do conteúdo
 
@@ -207,7 +207,7 @@ stateDiagram-v2
 - **Próximo Estado**: `CONVERSATION_ENDED`
 
 #### `WAITING_PAYMENT_5`
-- **Trigger**: Usuário aceita oferta de R$ 5,00
+- **Trigger**: Usuário aceita oferta de R$ 5,90
 - **Ação**: Gerar PIX e aguardar confirmação
 - **Próximo Estado**: `CONVERSATION_ENDED`
 
@@ -275,10 +275,10 @@ with open('fotos/audio.mp3', 'rb') as audio:
 |---------------|------|---------------|
 | `sim_12` | Gerar PIX R$ 12,90 | `WAITING_PAYMENT_12` |
 | `nao_12` | Oferecer desconto | Manter estado |
-| `pode_ser_5` | Gerar PIX R$ 5,00 | `WAITING_PAYMENT_5` |
+| `pode_ser_5` | Gerar PIX R$ 5,90 | `WAITING_PAYMENT_5` |
 | `nao_quero` | Finalizar conversa | `CONVERSATION_ENDED` |
 | `confirm_payment_12` | Verificar pagamento R$ 12,90 | `CONVERSATION_ENDED` |
-| `confirm_payment_5` | Verificar pagamento R$ 5,00 | `CONVERSATION_ENDED` |
+| `confirm_payment_5` | Verificar pagamento R$ 5,90 | `CONVERSATION_ENDED` |
 
 ### Processamento de Callbacks
 

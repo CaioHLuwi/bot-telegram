@@ -66,7 +66,7 @@ O bot Kyoko agora ativa automaticamente o fluxo promocional para **qualquer prim
 
 ### 3. Continuação Normal
 - Usuário responde "Sim"/"Quero" → PIX R$ 12,90
-- Usuário responde "Não" → Oferta R$ 5,00
+- Usuário responde "Não" → Oferta R$ 5,90
 - Outras respostas → Botões de escolha
 
 ## ⚙️ Implementação Técnica

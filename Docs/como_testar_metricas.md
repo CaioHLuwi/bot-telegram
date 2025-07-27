@@ -29,7 +29,7 @@ O bot retornará um relatório completo com:
 
 💰 VENDAS POR PACK
 • Pack R$ 12,90: X vendas
-• Pack R$ 5,00: X vendas
+• Pack R$ 5,90: X vendas
 
 📅 ÚLTIMOS 7 DIAS
 • 2025-01-26: X conversas, X pagamentos, R$ X.XX
