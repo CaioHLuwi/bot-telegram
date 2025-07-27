@@ -90,7 +90,7 @@ E substitua pela mensagem que desejar.
 ### ❓ Posso mudar o horário?
 **Sim!** No arquivo `bot.py`, procure por:
 ```python
-interval=3600,  # 3600 segundos = 1 hora
+interval=10800,  # 3600 segundos = 1 hora
 ```
 E altere para:
 - `1800` = 30 minutos

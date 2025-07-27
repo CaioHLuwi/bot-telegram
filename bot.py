@@ -550,6 +550,130 @@ async def send_promotional_message(context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f'Erro ao enviar mensagem promocional: {e}')
 
+async def clean_group_messages(context: ContextTypes.DEFAULT_TYPE):
+    """Limpar mensagens de entrada/saída de membros e notificações do grupo a cada 5 minutos"""
+    try:
+        if not GROUP_CHAT_ID:
+            logger.warning('GROUP_CHAT_ID não configurado - limpeza de mensagens desabilitada')
+            return
+            
+        # Obter informações do bot para identificar suas mensagens
+        bot_info = await context.bot.get_me()
+        bot_username = bot_info.username
+        
+        # Obter as últimas 100 mensagens do grupo
+        try:
+            # Usar o método get_chat para verificar se temos acesso ao grupo
+            chat = await context.bot.get_chat(GROUP_CHAT_ID)
+            
+            # Como não podemos obter histórico de mensagens diretamente,
+            # vamos armazenar IDs de mensagens para deletar posteriormente
+            # Esta implementação será feita através de um handler de mensagens
+            logger.info(f'Verificação de limpeza executada para o grupo {GROUP_CHAT_ID}')
+            
+        except Exception as e:
+            logger.error(f'Erro ao acessar o grupo {GROUP_CHAT_ID}: {e}')
+            
+    except Exception as e:
+        logger.error(f'Erro na limpeza de mensagens: {e}')
+
+# Lista global para armazenar IDs de mensagens que devem ser deletadas
+messages_to_delete = []
+
+async def handle_group_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler para mensagens do grupo - identifica mensagens para deletar"""
+    try:
+        # Verificar se a mensagem é do grupo configurado
+        if update.effective_chat.id != int(GROUP_CHAT_ID):
+            return
+            
+        message = update.message
+        if not message:
+            return
+            
+        # Obter informações do bot
+        bot_info = await context.bot.get_me()
+        bot_username = bot_info.username
+        
+        should_delete = False
+        
+        # Verificar se é mensagem de entrada/saída de membros
+        if (message.new_chat_members or 
+            message.left_chat_member or 
+            message.group_chat_created or 
+            message.supergroup_chat_created or 
+            message.channel_chat_created or 
+            message.migrate_to_chat_id or 
+            message.migrate_from_chat_id or 
+            message.pinned_message or 
+            message.new_chat_title or 
+            message.new_chat_photo or 
+            message.delete_chat_photo):
+            should_delete = True
+            
+        # Verificar se é mensagem de usuário (não é da Leticia Kyoko nem do bot)
+        elif message.from_user:
+            username = message.from_user.username or ""
+            first_name = message.from_user.first_name or ""
+            
+            # Manter apenas mensagens da "Leticia Kyoko" e do bot
+            if (username.lower() != "leticiakyoko" and 
+                first_name.lower() != "leticia kyoko" and 
+                username != bot_username and 
+                not message.from_user.is_bot):
+                should_delete = True
+                
+        # Adicionar à lista de mensagens para deletar
+        if should_delete:
+            messages_to_delete.append({
+                'chat_id': message.chat_id,
+                'message_id': message.message_id,
+                'timestamp': datetime.datetime.now()
+            })
+            logger.info(f'Mensagem marcada para deleção: {message.message_id}')
+            
+    except Exception as e:
+        logger.error(f'Erro ao processar mensagem do grupo: {e}')
+
+async def execute_message_cleanup(context: ContextTypes.DEFAULT_TYPE):
+    """Executar limpeza das mensagens marcadas para deleção"""
+    global messages_to_delete
+    
+    try:
+        if not messages_to_delete:
+            logger.info('Nenhuma mensagem para deletar')
+            return
+            
+        deleted_count = 0
+        failed_count = 0
+        
+        # Criar uma cópia da lista para iterar
+        messages_copy = messages_to_delete.copy()
+        
+        for msg_info in messages_copy:
+            try:
+                await context.bot.delete_message(
+                    chat_id=msg_info['chat_id'],
+                    message_id=msg_info['message_id']
+                )
+                deleted_count += 1
+                messages_to_delete.remove(msg_info)
+                
+            except Exception as e:
+                failed_count += 1
+                # Remover mensagens antigas que falharam (mais de 48h)
+                if (datetime.datetime.now() - msg_info['timestamp']).total_seconds() > 172800:
+                    messages_to_delete.remove(msg_info)
+                    logger.warning(f'Removendo mensagem antiga da lista: {msg_info["message_id"]}')
+                else:
+                    logger.warning(f'Falha ao deletar mensagem {msg_info["message_id"]}: {e}')
+                    
+        if deleted_count > 0 or failed_count > 0:
+            logger.info(f'Limpeza concluída: {deleted_count} deletadas, {failed_count} falharam')
+            
+    except Exception as e:
+        logger.error(f'Erro na execução da limpeza: {e}')
+
 async def get_group_id_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Comando para obter o ID do grupo atual"""
     chat_id = update.effective_chat.id
@@ -585,8 +709,11 @@ async def saude_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cpu_percent = psutil.cpu_percent(interval=1)
         memory = psutil.virtual_memory()
         
-        # Verifica se as mensagens automáticas estão configuradas
+        # Verifica se os jobs automáticos estão configurados
         job_queue_status = "✅ Ativo" if GROUP_CHAT_ID else "⚠️ Não configurado"
+        
+        # Contar mensagens pendentes para limpeza
+        pending_cleanup = len(messages_to_delete)
         
         message = f"🤖 **Status do Bot Kyoko**\n\n"
         message += f"✅ **Bot Online:** Funcionando normalmente\n"
@@ -594,7 +721,8 @@ async def saude_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message += f"🕐 **Uptime:** {str(uptime).split('.')[0]}\n"
         message += f"💾 **Uso de Memória:** {memory.percent:.1f}%\n"
         message += f"🖥️ **Uso de CPU:** {cpu_percent:.1f}%\n"
-        message += f"📢 **Mensagens Automáticas:** {job_queue_status}\n\n"
+        message += f"📢 **Jobs Automáticos:** {job_queue_status}\n"
+        message += f"🧹 **Mensagens p/ Limpeza:** {pending_cleanup}\n\n"
         
         if GROUP_CHAT_ID:
             message += f"🎯 **Grupo Configurado:** `{GROUP_CHAT_ID}`\n"
@@ -631,29 +759,48 @@ def main():
     application.add_handler(CommandHandler("metricas", show_metrics))
     application.add_handler(CommandHandler("groupid", get_group_id_command))
     application.add_handler(CommandHandler("saude", saude_command))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    
+    # Handler para mensagens privadas (conversas do bot)
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & filters.ChatType.PRIVATE, handle_message))
+    
+    # Handler para mensagens do grupo (para limpeza automática)
+    application.add_handler(MessageHandler(filters.ALL & filters.ChatType.GROUPS, handle_group_message))
+    
     application.add_handler(CallbackQueryHandler(button_callback))
     
-    # Configurar mensagens automáticas (a cada 1 hora)
+    # Configurar jobs automáticos
     if GROUP_CHAT_ID:
         try:
             job_queue = application.job_queue
             if job_queue is not None:
+                # Mensagens promocionais (a cada 1 hora)
                 job_queue.run_repeating(
                     send_promotional_message,
                     interval=3600,  # 3600 segundos = 1 hora
                     first=10,       # Primeira execução após 10 segundos (teste de deploy)
                     name='promotional_messages'
                 )
-                logger.info(f"Mensagens automáticas configuradas para o grupo {GROUP_CHAT_ID} (a cada 1 hora)")
+                
+                # Limpeza de mensagens (a cada 5 minutos)
+                job_queue.run_repeating(
+                    execute_message_cleanup,
+                    interval=300,   # 300 segundos = 5 minutos
+                    first=30,       # Primeira execução após 30 segundos
+                    name='message_cleanup'
+                )
+                
+                logger.info(f"Jobs automáticos configurados para o grupo {GROUP_CHAT_ID}:")
+                logger.info("- Mensagens promocionais: a cada 1 hora")
+                logger.info("- Limpeza de mensagens: a cada 5 minutos")
                 logger.info("Primeira mensagem promocional será enviada em 10 segundos como teste de deploy")
+                logger.info("Primeira limpeza será executada em 30 segundos")
             else:
                 logger.error("JobQueue não disponível. Instale com: pip install python-telegram-bot[job-queue]")
         except Exception as e:
-            logger.error(f"Erro ao configurar mensagens automáticas: {e}")
-            logger.error("Para usar mensagens automáticas, instale: pip install python-telegram-bot[job-queue]")
+            logger.error(f"Erro ao configurar jobs automáticos: {e}")
+            logger.error("Para usar jobs automáticos, instale: pip install python-telegram-bot[job-queue]")
     else:
-        logger.warning("GROUP_CHAT_ID não configurado - mensagens automáticas desabilitadas")
+        logger.warning("GROUP_CHAT_ID não configurado - jobs automáticos desabilitados")
     
     # Iniciar bot
     logger.info("Bot iniciado!")

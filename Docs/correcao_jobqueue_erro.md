@@ -43,7 +43,7 @@ if GROUP_CHAT_ID:
         if job_queue is not None:
             job_queue.run_repeating(
                 send_promotional_message,
-                interval=3600,  # 3600 segundos = 1 hora
+                interval=10800,  # 3600 segundos = 1 hora
                 first=60,       # Primeira execução após 1 minuto
                 name='promotional_messages'
             )
