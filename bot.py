@@ -1,13 +1,32 @@
 import os
+import sys
 import asyncio
 import logging
 import requests
+import tempfile
 from datetime import datetime, timedelta
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, ContextTypes, filters
 from telegram.constants import ParseMode
 from dotenv import load_dotenv
 from metrics import bot_metrics
+
+# Carregar configurações locais se existirem
+def load_local_env():
+    """Carregar variáveis do arquivo .env.local se existir"""
+    env_local_path = os.path.join(os.path.dirname(__file__), '.env.local')
+    if os.path.exists(env_local_path):
+        with open(env_local_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    os.environ[key.strip()] = value.strip()
+        return True
+    return False
+
+# Carregar configurações locais
+local_env_loaded = load_local_env()
 
 # Carregar variáveis de ambiente
 load_dotenv()
@@ -580,6 +599,40 @@ async def clean_group_messages(context: ContextTypes.DEFAULT_TYPE):
 # Lista global para armazenar IDs de mensagens que devem ser deletadas
 messages_to_delete = []
 
+def ensure_single_instance():
+    """Garantir que apenas uma instância do bot rode por vez"""
+    lock_file_path = os.path.join(tempfile.gettempdir(), 'bot_kyoko_packs.lock')
+    
+    try:
+        # Verificar se arquivo de lock existe e se o processo ainda está rodando
+        if os.path.exists(lock_file_path):
+            with open(lock_file_path, 'r') as f:
+                try:
+                    old_pid = int(f.read().strip())
+                    # Verificar se o processo ainda existe (Windows)
+                    import psutil
+                    if psutil.pid_exists(old_pid):
+                        logger.error(f"❌ Outra instância do bot já está rodando (PID: {old_pid})!")
+                        logger.error("💡 Para parar: Get-Process python | Stop-Process -Force")
+                        sys.exit(1)
+                    else:
+                        # Processo não existe mais, remover lock antigo
+                        os.remove(lock_file_path)
+                except (ValueError, ImportError):
+                    # Se não conseguir verificar, remover lock antigo
+                    os.remove(lock_file_path)
+        
+        # Criar novo arquivo de lock
+        with open(lock_file_path, 'w') as f:
+            f.write(str(os.getpid()))
+        
+        logger.info(f"🔒 Lock criado: PID {os.getpid()}")
+        return lock_file_path
+        
+    except Exception as e:
+        logger.warning(f"⚠️ Não foi possível criar lock: {e}")
+        return None
+
 async def handle_group_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler para mensagens do grupo - identifica mensagens para deletar"""
     try:
@@ -749,6 +802,17 @@ def main():
     if not BOT_TOKEN:
         logger.error("BOT_TOKEN não encontrado! Configure a variável de ambiente.")
         return
+    
+    # Verificar instância única
+    lock_file = ensure_single_instance()
+    
+    # Log de configurações
+    environment = os.getenv('ENVIRONMENT', 'production')
+    logger.info(f"🌍 Ambiente: {environment}")
+    if local_env_loaded:
+        logger.info("📁 Configurações locais carregadas (.env.local)")
+    logger.info(f"🤖 Bot Token: ...{BOT_TOKEN[-10:]}")
+    logger.info(f"👥 Grupo ID: {GROUP_CHAT_ID}")
     
     # Criar aplicação
     application = Application.builder().token(BOT_TOKEN).build()
