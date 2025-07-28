@@ -585,7 +585,7 @@ async def send_promotional_message(context: ContextTypes.DEFAULT_TYPE):
     """Enviar mensagem promocional automática para o grupo"""
     try:
         if GROUP_CHAT_ID:
-            promotional_text = "Super promo, pack apenas hoje por R$ 5,90 ❤️‍🔥 Vem se divertir comigo amor @kyoko_uwubot - 26 fotos, 8 vídeos todoss peladinha para você."
+            promotional_text = "Super promo, pack apenas hoje por R$ 12,90 ❤️‍🔥 Vem se divertir comigo amor @kyoko_uwubot - 26 fotos, 8 vídeos todoss peladinha para você."
             
             await context.bot.send_message(
                 chat_id=GROUP_CHAT_ID,
