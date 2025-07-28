@@ -145,6 +145,29 @@ async def start_conversation(update: Update, context: ContextTypes.DEFAULT_TYPE)
     # Aguardar um pouco antes da próxima mensagem
     await asyncio.sleep(2)
     
+    # Oferta da call de vídeo
+    keyboard = [
+        [InlineKeyboardButton("💕 Sim, quero a call!", callback_data="call_video_yes")],
+        [InlineKeyboardButton("❌ Não, obrigado", callback_data="call_video_no")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    call_message = "💕 **Oferta Especial!** 💕\n\n"
+    call_message += "Que tal fazermos uma call de vídeo de 5 minutos bem gostosinha? ❤️‍🔥\n\n"
+    call_message += "💰 **Apenas R$ 27,90**\n"
+    call_message += "📱 **5 minutos de pura diversão**\n"
+    call_message += "🔥 **Só eu e você, bem íntimo**\n\n"
+    call_message += "O que você acha, amor?"
+    
+    await update.message.reply_text(
+        call_message,
+        reply_markup=reply_markup,
+        parse_mode=ParseMode.MARKDOWN
+    )
+    
+    # Aguardar resposta sobre a call
+    await asyncio.sleep(1)
+    
     # Enviar primeira foto
     try:
         if os.path.exists('fotos/4.jpg'):
@@ -327,7 +350,82 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = query.from_user.id
     data = query.data
     
-    if data == "sim_12":
+    if data == "call_video_yes":
+        # Usuário aceitou a call de vídeo
+        try:
+            payment_data = create_pix_payment(27.90, "Call de Vídeo 5min - R$ 27,90")
+            
+            if payment_data:
+                user_states[user_id] = ConversationState.WAITING_PAYMENT_12  # Reutilizando estado
+                
+                context.user_data['payment_id_12'] = payment_data.get('id')
+                context.user_data['pix_code_12'] = payment_data.get('qr_code')
+                
+                message = f"💕 **Que delícia, amor!** 💕\n\n"
+                message += f"**PIX de R$ 27,90 para nossa call:**\n"
+                message += f"`{payment_data.get('qr_code', 'Código PIX não disponível')}`\n\n"
+                message += f"📱 **Como pagar:**\n"
+                message += f"1. Copie o código PIX\n"
+                message += f"2. Abra seu banco\n"
+                message += f"3. Cole o código na área PIX\n"
+                message += f"4. Confirme o pagamento\n"
+                message += f"5. Clique em 'Confirmar pagamento'\n\n"
+                message += f"🔥 **Após o pagamento, te mando o link da call!**\n"
+                message += f"⏰ **Pagamento expira em 30 minutos**"
+                
+                await query.edit_message_text(
+                    message,
+                    parse_mode=ParseMode.MARKDOWN,
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("📋 Copiar código PIX", callback_data=f"copy_pix_12_{payment_data.get('id')}")],
+                        [InlineKeyboardButton("✅ Confirmar pagamento", callback_data="confirm_payment_12")]
+                    ])
+                )
+            else:
+                await query.edit_message_text("❌ Erro ao gerar pagamento. Tente novamente.")
+        except Exception as e:
+            logger.error(f"Erro ao gerar PIX da call: {e}")
+            await query.edit_message_text("❌ Erro interno. Tente novamente mais tarde.")
+    
+    elif data == "call_video_no":
+        # Usuário recusou a call, continuar com fluxo normal
+        await query.edit_message_text(
+            "Tudo bem, amor! Vamos para as outras opções então 😊\n\n"
+            "Aguarde que vou te mostrar meus conteúdos..."
+        )
+        
+        # Aguardar um pouco e continuar com o fluxo normal
+        await asyncio.sleep(2)
+        
+        # Continuar com o fluxo normal (enviar foto)
+        try:
+            if os.path.exists('fotos/4.jpg'):
+                with open('fotos/4.jpg', 'rb') as photo:
+                    await context.bot.send_photo(
+                        chat_id=query.message.chat_id,
+                        photo=photo,
+                        caption="Olha uma fotinha minha para você 😘"
+                    )
+            
+            await asyncio.sleep(3)
+            
+            # Continuar com a pergunta sobre o pack
+            keyboard = [
+                [InlineKeyboardButton("💕 Sim", callback_data="sim_12")],
+                [InlineKeyboardButton("❌ Não", callback_data="nao_12")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            await context.bot.send_message(
+                chat_id=query.message.chat_id,
+                text="Gostou? Tenho um pack completo com 26 fotos e 8 vídeos bem safadinhos por apenas R$ 12,90! Quer?",
+                reply_markup=reply_markup
+            )
+            
+        except Exception as e:
+            logger.error(f"Erro ao continuar fluxo normal: {e}")
+    
+    elif data == "sim_12":
         # Gerar PIX de R$ 12,90
         payment_data = create_pix_payment(12.90, "Pack Kyoko - R$ 12,90")
         
@@ -616,10 +714,30 @@ async def send_content_link(query, context):
     user_id = query.from_user.id
     user_states[user_id] = ConversationState.CONVERSATION_ENDED
     
+    # Verificar se é pagamento de call de vídeo baseado na descrição do pagamento
+    payment_id = context.user_data.get('payment_id_12')
+    is_video_call = False
+    
+    # Verificar se é call de vídeo (valor R$ 27,90)
+    if payment_id and "12" in query.data:
+        # Assumir que se o valor for 27.90, é call de vídeo
+        # (podemos melhorar isso salvando o tipo no context.user_data)
+        try:
+            payment_status = check_payment_status(payment_id)
+            if payment_status.get('data') and payment_status['data'].get('amount') == 27.90:
+                is_video_call = True
+        except:
+            # Se não conseguir verificar, assumir que não é call
+            pass
+    
     # Determinar tipo de pagamento baseado no callback
     if "12" in query.data:
-        payment_type = "pack_12"
-        amount = 12.90
+        if is_video_call:
+            payment_type = "call_video"
+            amount = 27.90
+        else:
+            payment_type = "pack_12"
+            amount = 12.90
     elif "10" in query.data:
         payment_type = "pack_10"
         amount = 10.00
@@ -630,17 +748,28 @@ async def send_content_link(query, context):
     # Registrar pagamento nas métricas
     bot_metrics.log_payment(user_id, amount, payment_type)
     
-    await query.edit_message_text(
-        f"Pagamento confirmado! 🎉\n\n"
-        f"Entre no meu site de packzinho e baixe diretamente de lá, obrigado por comprar gatinho, caso queira mais só me chamar rsrs. Espero que goste...\n\n"
-        f"🔗 Link: {CONTEUDO_LINK}"
-    )
-    
-    # Enviar mensagem final de suporte
-    await context.bot.send_message(
-        chat_id=query.message.chat_id,
-        text="Se você tiver algum problema para receber o pack me chama no @leticiakyoko, vou te responder assim que puder <3"
-    )
+    if is_video_call:
+        # Mensagem para call de vídeo
+        await query.edit_message_text(
+            f"💕 **Pagamento confirmado!** 💕\n\n"
+            f"🔥 **Nossa call de vídeo está confirmada!**\n\n"
+            f"📱 **Entre no WhatsApp para marcarmos:**\n"
+            f"wa.me/5583999620663\n\n"
+            f"💋 Te espero lá, amor! Vai ser delicioso... ❤️‍🔥"
+        )
+    else:
+        # Mensagem para packs
+        await query.edit_message_text(
+            f"Pagamento confirmado! 🎉\n\n"
+            f"Entre no meu site de packzinho e baixe diretamente de lá, obrigado por comprar gatinho, caso queira mais só me chamar rsrs. Espero que goste...\n\n"
+            f"🔗 Link: {CONTEUDO_LINK}"
+        )
+        
+        # Enviar mensagem final de suporte apenas para packs
+        await context.bot.send_message(
+            chat_id=query.message.chat_id,
+            text="Se você tiver algum problema para receber o pack me chama no @leticiakyoko, vou te responder assim que puder <3"
+        )
 
 async def show_metrics(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Exibir métricas do bot"""
@@ -708,7 +837,7 @@ async def send_promotional_message(context: ContextTypes.DEFAULT_TYPE):
     """Enviar mensagem promocional automática para o grupo"""
     try:
         if GROUP_CHAT_ID:
-            promotional_text = "Super promo, pack apenas hoje por R$ 12,90 ❤️‍🔥 Vem se divertir comigo amor @kyoko_uwubot - 26 fotos, 8 vídeos todoss peladinha para você."
+            promotional_text = "Vem fazer uma call de vídeo comigo amor ❤️‍🔥 eu faço um descontinho na hora para você rsrs - wa.me/5583999620663"
             
             await context.bot.send_message(
                 chat_id=GROUP_CHAT_ID,
