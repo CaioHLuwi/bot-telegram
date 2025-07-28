@@ -55,6 +55,7 @@ class ConversationState:
     WAITING_PAYMENT_12 = 'waiting_payment_12'
     WAITING_PAYMENT_5 = 'waiting_payment_5'
     WAITING_PAYMENT_10 = 'waiting_payment_10'
+    WAITING_PIX_VALUE = 'waiting_pix_value'
     CONVERSATION_ENDED = 'conversation_ended'
 
 def create_pix_payment(amount: float, description: str) -> dict:
@@ -217,7 +218,98 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     current_state = user_states[user_id]
     
-    if current_state == ConversationState.WAITING_RESPONSE:
+    if current_state == ConversationState.WAITING_PIX_VALUE:
+        # Processar valor digitado para gerar PIX personalizado
+        try:
+            # Remover espaços e substituir vírgula por ponto
+            value_text = update.message.text.strip().replace(',', '.')
+            
+            # Tentar converter para float
+            value = float(value_text)
+            
+            # Validar limites
+            if value < 1.00:
+                await update.message.reply_text(
+                    "❌ **Valor muito baixo!**\n\n"
+                    "O valor mínimo é R$ 1,00.\n\n"
+                    "Digite um valor válido:",
+                    parse_mode=ParseMode.MARKDOWN
+                )
+                return
+            
+            if value > 1000.00:
+                await update.message.reply_text(
+                    "❌ **Valor muito alto!**\n\n"
+                    "O valor máximo é R$ 1.000,00.\n\n"
+                    "Digite um valor válido:",
+                    parse_mode=ParseMode.MARKDOWN
+                )
+                return
+            
+            # Gerar PIX com o valor especificado
+            payment_data = create_pix_payment(value, f"PIX Personalizado - R$ {value:.2f}")
+            
+            if payment_data:
+                # Resetar estado
+                user_states[user_id] = ConversationState.WAITING_RESPONSE
+                
+                # Salvar dados do pagamento
+                context.user_data['payment_id_custom'] = payment_data.get('id')
+                context.user_data['pix_code_custom'] = payment_data.get('qr_code')
+                context.user_data['pix_value_custom'] = value
+                
+                message = f"✅ **PIX Gerado com Sucesso!**\n\n"
+                message += f"💰 **Valor:** R$ {value:.2f}\n\n"
+                message += f"📋 **Código PIX:**\n"
+                message += f"`{payment_data.get('qr_code', 'Código PIX não disponível')}`\n\n"
+                message += f"⏰ **Válido por:** 30 minutos\n\n"
+                message += f"📱 **Como pagar:**\n"
+                message += f"1. Copie o código PIX\n"
+                message += f"2. Abra seu app bancário\n"
+                message += f"3. Escolha PIX > Copia e Cola\n"
+                message += f"4. Cole o código e confirme"
+                
+                await update.message.reply_text(
+                    message,
+                    parse_mode=ParseMode.MARKDOWN,
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("📋 Copiar Código PIX", callback_data=f"copy_pix_custom_{payment_data.get('id')}")],
+                        [InlineKeyboardButton("✅ Confirmar Pagamento", callback_data="confirm_payment_custom")]
+                    ])
+                )
+                
+                logger.info(f"PIX personalizado gerado: R$ {value:.2f} para {update.effective_user.first_name}")
+            else:
+                await update.message.reply_text(
+                    "❌ **Erro ao gerar PIX**\n\n"
+                    "Houve um problema ao processar seu pagamento.\n"
+                    "Tente novamente em alguns minutos."
+                )
+                # Resetar estado em caso de erro
+                user_states[user_id] = ConversationState.WAITING_RESPONSE
+                
+        except ValueError:
+            await update.message.reply_text(
+                "❌ **Valor inválido!**\n\n"
+                "Digite apenas números. Exemplos:\n"
+                "• `15.50`\n"
+                "• `25`\n"
+                "• `100.00`\n\n"
+                "Tente novamente:",
+                parse_mode=ParseMode.MARKDOWN
+            )
+        except Exception as e:
+            logger.error(f"Erro ao processar valor do PIX: {e}")
+            await update.message.reply_text(
+                "❌ **Erro interno**\n\n"
+                "Tente novamente mais tarde."
+            )
+            # Resetar estado em caso de erro
+            user_states[user_id] = ConversationState.WAITING_RESPONSE
+        
+        return
+    
+    elif current_state == ConversationState.WAITING_RESPONSE:
         # Com o novo fluxo, as respostas são tratadas pelos botões inline
         await update.message.reply_text(
             "Use os botões acima para escolher sua opção! 😊"
@@ -475,6 +567,37 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     elif data == "confirm_payment_10":
         payment_id = context.user_data.get('payment_id_10')
+        if payment_id:
+            payment_status = check_payment_status(payment_id)
+            if payment_status['paid']:
+                await send_content_link(query, context)
+            else:
+                status = payment_status['status']
+                if status == 'pending' or status == 'CRIADO':
+                    await query.answer("Pagamento ainda não foi processado. Aguarde alguns minutos e tente novamente.", show_alert=True)
+                else:
+                    await query.answer("Você ainda não pagou amor, verifica aí e tenta de novo.", show_alert=True)
+        else:
+            await query.answer("Erro: ID do pagamento não encontrado.", show_alert=True)
+    
+    elif data.startswith("copy_pix_custom_"):
+        # Copiar código PIX personalizado
+        payment_id = data.replace("copy_pix_custom_", "")
+        pix_code = context.user_data.get('pix_code_custom')
+        if pix_code:
+            await query.answer("Código PIX copiado!", show_alert=True)
+        else:
+            await query.answer("Erro: Código PIX não encontrado.", show_alert=True)
+        
+        # Enviar código PIX em mensagem separada para facilitar cópia
+        await context.bot.send_message(
+            chat_id=query.message.chat_id,
+            text=f"`{pix_code}`",
+            parse_mode=ParseMode.MARKDOWN
+        )
+    
+    elif data == "confirm_payment_custom":
+        payment_id = context.user_data.get('payment_id_custom')
         if payment_id:
             payment_status = check_payment_status(payment_id)
             if payment_status['paid']:
@@ -799,6 +922,30 @@ async def pix_10_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"Erro no comando /10: {e}")
         await update.message.reply_text("❌ Erro interno. Tente novamente mais tarde.")
 
+async def gerar_pix_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Comando /gerarpix - solicita valor e gera PIX personalizado"""
+    try:
+        user_id = update.effective_user.id
+        
+        # Definir estado para aguardar valor
+        user_states[user_id] = ConversationState.WAITING_PIX_VALUE
+        
+        message = "💰 **Gerar PIX Personalizado**\n\n"
+        message += "Digite o valor desejado para o PIX:\n\n"
+        message += "📝 **Exemplos:**\n"
+        message += "• `15.50`\n"
+        message += "• `25`\n"
+        message += "• `100.00`\n\n"
+        message += "⚠️ **Valor mínimo:** R$ 1,00\n"
+        message += "⚠️ **Valor máximo:** R$ 1.000,00"
+        
+        await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
+        logger.info(f"Comando /gerarpix iniciado por {update.effective_user.first_name}")
+        
+    except Exception as e:
+        logger.error(f"Erro no comando /gerarpix: {e}")
+        await update.message.reply_text("❌ Erro interno. Tente novamente mais tarde.")
+
 async def saude_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Comando para verificar se o bot está funcionando normalmente"""
     import datetime
@@ -838,6 +985,7 @@ async def saude_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message += "• `/start` - Iniciar bot\n"
         message += "• `/oi` - Saudação\n"
         message += "• `/10` - Gerar PIX de R$ 10,00\n"
+        message += "• `/gerarpix` - Gerar PIX personalizado\n"
         message += "• `/metricas` - Ver estatísticas\n"
         message += "• `/groupid` - ID do grupo\n"
         message += "• `/saude` - Status do bot\n\n"
@@ -876,6 +1024,7 @@ def main():
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("oi", oi_command))
     application.add_handler(CommandHandler("10", pix_10_command))
+    application.add_handler(CommandHandler("gerarpix", gerar_pix_command))
     application.add_handler(CommandHandler("metricas", show_metrics))
     application.add_handler(CommandHandler("groupid", get_group_id_command))
     application.add_handler(CommandHandler("saude", saude_command))
