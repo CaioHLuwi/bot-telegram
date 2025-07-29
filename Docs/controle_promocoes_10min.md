@@ -2,7 +2,7 @@
 
 ## Visão Geral
 
-Este documento detalha as modificações implementadas no sistema de mensagens promocionais automáticas, incluindo a alteração do intervalo para 10 minutos e a adição do comando `/pararpromo` para controle manual.
+Este documento detalha as modificações implementadas no sistema de mensagens promocionais automáticas, incluindo a alteração do intervalo para 1 hora, a nova mensagem promocional de suporte e a adição do comando `/pararpromo` para controle manual.
 
 ## Funcionalidades Implementadas
 
@@ -128,10 +128,15 @@ job_queue.run_repeating(
 
 ## Estratégia de Marketing
 
+### Nova Mensagem Promocional
+- **Conteúdo:** Mensagem de suporte e direcionamento
+- **Objetivo:** Direcionar dúvidas para atendimento personalizado
+- **Canal:** @leticiakyoko para atendimento direto
+
 ### Benefícios do Intervalo de 1 Hora
-- Maior exposição da oferta promocional
+- Lembrança constante do canal de suporte
 - Captura de usuários em diferentes horários
-- Aumento potencial de conversões
+- Direcionamento eficaz para atendimento personalizado
 
 ### Controle de Experiência do Usuário
 - Comando de desativação para usuários sensíveis

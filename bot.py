@@ -861,16 +861,9 @@ async def send_promotional_message(context: ContextTypes.DEFAULT_TYPE):
                     else:
                         mentions.append(f"[{admin.user.first_name}](tg://user?id={admin.user.id})")
                 
-                # Mensagem promocional chamativa
+                # Mensagem promocional
                 promotional_text = (
-                    "🔥 **PROMOÇÃO IMPERDÍVEL!** 🔥\n\n"
-                    "💥 **50% DE DESCONTO** no pack mais completo! 💥\n\n"
-                    "💰 **APENAS R$ 6,95 NO PIX** 💰\n\n"
-                    "🎁 **CONTEÚDO EXCLUSIVO E COMPLETO**\n"
-                    "📱 **Acesso imediato após pagamento**\n"
-                    "🔞 **Material premium e inédito**\n\n"
-                    "⚡ **OFERTA POR TEMPO LIMITADO!** ⚡\n\n"
-                    "💬 **Chama no privado para garantir o seu!**\n\n"
+                    "Tem alguma dúvida sobre meus packs amor? Me manda mensagem no @leticiakyoko que vou te responder na hora"
                 )
                 
                 # Adicionar menções se houver
@@ -890,15 +883,7 @@ async def send_promotional_message(context: ContextTypes.DEFAULT_TYPE):
                 logger.warning(f'Não foi possível obter membros do grupo: {e}. Enviando mensagem geral.')
                 
                 promotional_text = (
-                    "🔥 **PROMOÇÃO IMPERDÍVEL!** 🔥\n\n"
-                    "💥 **50% DE DESCONTO** no pack mais completo! 💥\n\n"
-                    "💰 **APENAS R$ 6,95 NO PIX** 💰\n\n"
-                    "🎁 **CONTEÚDO EXCLUSIVO E COMPLETO**\n"
-                    "📱 **Acesso imediato após pagamento**\n"
-                    "🔞 **Material premium e inédito**\n\n"
-                    "⚡ **OFERTA POR TEMPO LIMITADO!** ⚡\n\n"
-                    "💬 **Chama no privado para garantir o seu!**\n\n"
-                    "📢 **@everyone - Não percam essa oportunidade!**"
+                    "Tem alguma dúvida sobre meus packs amor? Me manda mensagem no @leticiakyoko que vou te responder na hora"
                 )
                 
                 await context.bot.send_message(
