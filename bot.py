@@ -157,7 +157,7 @@ async def start_conversation(update: Update, context: ContextTypes.DEFAULT_TYPE)
     
     call_message = "💕 **Oferta Especial!** 💕\n\n"
     call_message += "Que tal fazermos uma call de vídeo de 5 minutos bem gostosinha? ❤️‍🔥\n\n"
-    call_message += "💰 **Apenas R$ 27,90**\n"
+    call_message += "💰 **Apenas R$ 29,90**\n"
     call_message += "📱 **5 minutos de pura diversão**\n"
     call_message += "🔥 **Só eu e você, bem íntimo**\n\n"
     call_message += "O que você acha, amor?"
@@ -356,7 +356,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if data == "call_video_yes":
         # Usuário aceitou a call de vídeo
         try:
-            payment_data = create_pix_payment(27.90, "Call de Vídeo 5min - R$ 27,90")
+            payment_data = create_pix_payment(29.90, "Call de Vídeo 5min - R$ 29,90")
             
             if payment_data:
                 user_states[user_id] = ConversationState.WAITING_PAYMENT_12  # Reutilizando estado
@@ -365,7 +365,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 context.user_data['pix_code_12'] = payment_data.get('qr_code')
                 
                 message = f"💕 **Que delícia, amor!** 💕\n\n"
-                message += f"**PIX de R$ 27,90 para nossa call:**\n"
+                message += f"**PIX de R$ 29,90 para nossa call:**\n"
                 message += f"`{payment_data.get('qr_code', 'Código PIX não disponível')}`\n\n"
                 message += f"📱 **Como pagar:**\n"
                 message += f"1. Copie o código PIX\n"
@@ -721,13 +721,13 @@ async def send_content_link(query, context):
     payment_id = context.user_data.get('payment_id_12')
     is_video_call = False
     
-    # Verificar se é call de vídeo (valor R$ 27,90)
+    # Verificar se é call de vídeo (valor R$ 29,90)
     if payment_id and "12" in query.data:
-        # Assumir que se o valor for 27.90, é call de vídeo
+        # Assumir que se o valor for 29.90, é call de vídeo
         # (podemos melhorar isso salvando o tipo no context.user_data)
         try:
             payment_status = check_payment_status(payment_id)
-            if payment_status.get('data') and payment_status['data'].get('amount') == 27.90:
+            if payment_status.get('data') and payment_status['data'].get('amount') == 29.90:
                 is_video_call = True
         except:
             # Se não conseguir verificar, assumir que não é call
@@ -737,7 +737,7 @@ async def send_content_link(query, context):
     if "12" in query.data:
         if is_video_call:
             payment_type = "call_video"
-            amount = 27.90
+            amount = 29.90
         else:
             payment_type = "pack_12"
             amount = 12.90
@@ -1163,7 +1163,7 @@ async def parar_promo_command(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 As mensagens promocionais automáticas foram {action}.
 
-**Intervalo:** A cada 10 minutos (quando ativas)
+**Intervalo:** A cada 1 hora (quando ativas)
 **Comando:** /pararpromo (para alternar)
 
 **Última alteração:** {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"""
@@ -1283,10 +1283,10 @@ def main():
         try:
             job_queue = application.job_queue
             if job_queue is not None:
-                # Mensagens promocionais (a cada 10 minutos)
+                # Mensagens promocionais (a cada 1 hora)
                 job_queue.run_repeating(
                     send_promotional_message,
-                    interval=600,   # 600 segundos = 10 minutos
+                    interval=3600,  # 3600 segundos = 1 hora
                     first=10,       # Primeira execução após 10 segundos (teste de deploy)
                     name='promotional_messages'
                 )
@@ -1300,7 +1300,7 @@ def main():
                 )
                 
                 logger.info(f"Jobs automáticos configurados para o grupo {GROUP_CHAT_ID}:")
-                logger.info("- Mensagens promocionais: a cada 10 minutos")
+                logger.info("- Mensagens promocionais: a cada 1 hora")
                 logger.info("- Limpeza de mensagens: a cada 5 minutos")
                 logger.info("Primeira mensagem promocional será enviada em 10 segundos como teste de deploy")
                 logger.info("Primeira limpeza será executada em 30 segundos")

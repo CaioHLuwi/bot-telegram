@@ -2,7 +2,7 @@
 
 ## Visão Geral
 
-O bot agora prioriza a venda de calls de vídeo de 5 minutos por R$ 27,90 como primeira oferta, antes de apresentar os packs tradicionais. Esta estratégia visa aumentar o ticket médio e oferecer uma experiência mais personalizada.
+O bot agora prioriza a venda de calls de vídeo de 5 minutos por R$ 29,90 como primeira oferta, antes de apresentar os packs tradicionais. Esta estratégia visa aumentar o ticket médio e oferecer uma experiência mais personalizada.
 
 ## Fluxo de Conversação
 
@@ -17,7 +17,7 @@ O bot agora prioriza a venda de calls de vídeo de 5 minutos por R$ 27,90 como p
 
 Que tal fazermos uma call de vídeo de 5 minutos bem gostosinha? ❤️‍🔥
 
-💰 **Apenas R$ 27,90**
+💰 **Apenas R$ 29,90**
 📱 **5 minutos de pura diversão**
 🔥 **Só eu e você, bem íntimo**
 
@@ -25,14 +25,14 @@ O que você acha, amor?
 ```
 
 **Botões:**
-- `💕 Sim, quero a call!` → Gera PIX de R$ 27,90
+- `💕 Sim, quero a call!` → Gera PIX de R$ 29,90
 - `❌ Não, obrigado` → Continua fluxo normal dos packs
 
 ### 3. Fluxos Possíveis
 
 #### 3.1 Usuário Aceita Call (callback: `call_video_yes`)
-- Gera PIX de R$ 27,90 via API Pushin Pay
-- Descrição: "Call de Vídeo 5min - R$ 27,90"
+- Gera PIX de R$ 29,90 via API Pushin Pay
+- Descrição: "Call de Vídeo 5min - R$ 29,90"
 - Exibe código PIX com instruções
 - Botões: "Copiar código PIX" e "Confirmar pagamento"
 - Após pagamento confirmado: Redireciona para WhatsApp
@@ -46,13 +46,13 @@ O que você acha, amor?
 
 ### Estados de Conversação
 - Reutiliza `WAITING_PAYMENT_12` para call de vídeo
-- Diferenciação feita pelo valor do pagamento (R$ 27,90 vs R$ 12,90)
+- Diferenciação feita pelo valor do pagamento (R$ 29,90 vs R$ 12,90)
 
 ### Callbacks Implementados
 ```python
 # Aceitar call de vídeo
 if data == "call_video_yes":
-    payment_data = create_pix_payment(27.90, "Call de Vídeo 5min - R$ 27,90")
+    payment_data = create_pix_payment(29.90, "Call de Vídeo 5min - R$ 29,90")
     # Gera PIX e exibe instruções
 
 # Recusar call de vídeo  
@@ -63,7 +63,7 @@ elif data == "call_video_no":
 ### Detecção de Tipo de Pagamento
 Na função `send_content_link()`, o sistema:
 1. Verifica o valor do pagamento via API
-2. Se R$ 27,90 → É call de vídeo
+2. Se R$ 29,90 → É call de vídeo
 3. Se R$ 12,90 → É pack normal
 4. Envia mensagem apropriada
 
@@ -96,7 +96,7 @@ A mensagem promocional automática no grupo foi alterada para:
 ## Métricas e Acompanhamento
 
 ### Novos Tipos de Pagamento
-- `call_video`: R$ 27,90 (call de vídeo)
+- `call_video`: R$ 29,90 (call de vídeo)
 - `pack_12`: R$ 12,90 (pack normal)
 - `pack_10`: R$ 10,00 (comando /10)
 - `pack_5`: R$ 5,90 (pack desconto)
@@ -107,7 +107,7 @@ A mensagem promocional automática no grupo foi alterada para:
    - % usuários que escolhem pack após recusar call
 
 2. **Ticket Médio**
-   - Impacto da call de R$ 27,90 no ticket médio
+   - Impacto da call de R$ 29,90 no ticket médio
    - Comparação antes/depois da implementação
 
 3. **Funil de Conversão**
@@ -119,7 +119,7 @@ A mensagem promocional automática no grupo foi alterada para:
 ## Vantagens da Estratégia
 
 ### Para o Negócio
-- **Maior ticket médio:** R$ 27,90 vs R$ 12,90 (+116%)
+- **Maior ticket médio:** R$ 29,90 vs R$ 12,90 (+132%)
 - **Experiência premium:** Call personalizada
 - **Diferenciação:** Serviço único no mercado
 - **Fidelização:** Contato direto com cliente
@@ -145,7 +145,7 @@ Se usuário recusa call:
 - Função `send_content_link()` adaptada
 
 ### Integração com API
-- Pushin Pay para PIX de R$ 27,90
+- Pushin Pay para PIX de R$ 29,90
 - Mesma infraestrutura dos outros pagamentos
 - Timeout padrão de 30 minutos
 

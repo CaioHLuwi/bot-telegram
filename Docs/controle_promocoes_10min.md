@@ -1,4 +1,4 @@
-# Controle de Promoções - Intervalo de 10 Minutos
+# Controle de Promoções - Intervalo de 1 Hora
 
 ## Visão Geral
 
@@ -8,7 +8,7 @@ Este documento detalha as modificações implementadas no sistema de mensagens p
 
 ### 1. Intervalo Reduzido
 - **Intervalo anterior:** 12 horas (43.200 segundos)
-- **Novo intervalo:** 10 minutos (600 segundos)
+- **Novo intervalo:** 1 hora (3600 segundos)
 - **Objetivo:** Maior frequência de exposição da oferta promocional
 
 ### 2. Comando de Controle `/pararpromo`
@@ -51,7 +51,7 @@ async def send_promotional_message(context: ContextTypes.DEFAULT_TYPE):
 ```python
 job_queue.run_repeating(
     send_promotional_message,
-    interval=600,   # 10 minutos
+    interval=3600,  # 1 hora
     first=10,
     name='promotional_messages'
 )
@@ -72,7 +72,7 @@ job_queue.run_repeating(
 
 ## Fluxo de Funcionamento
 
-### 1. Envio Automático (A cada 10 minutos)
+### 1. Envio Automático (A cada 1 hora)
 ```
 1. Job scheduler executa send_promotional_message
 2. Verifica promotional_messages_enabled
@@ -106,18 +106,18 @@ job_queue.run_repeating(
 ```
 - "Mensagens promocionais ativadas/desativadas por usuário {user_id}"
 - "Mensagens promocionais desabilitadas - pulando envio"
-- "- Mensagens promocionais: a cada 10 minutos"
+- "- Mensagens promocionais: a cada 1 hora"
 ```
 
 ### Métricas de Acompanhamento
 - Frequência de uso do comando `/pararpromo`
 - Tempo médio entre ativação/desativação
-- Taxa de engajamento com intervalo de 10 minutos
+- Taxa de engajamento com intervalo de 1 hora
 
 ## Impacto no Desempenho
 
 ### Considerações
-- **Aumento de frequência:** 72x mais mensagens por dia
+- **Frequência moderada:** 24 mensagens por dia
 - **Controle de spam:** Comando de desativação disponível
 - **Recursos:** Mínimo impacto adicional no servidor
 
@@ -128,7 +128,7 @@ job_queue.run_repeating(
 
 ## Estratégia de Marketing
 
-### Benefícios do Intervalo de 10 Minutos
+### Benefícios do Intervalo de 1 Hora
 - Maior exposição da oferta promocional
 - Captura de usuários em diferentes horários
 - Aumento potencial de conversões
@@ -173,7 +173,7 @@ tail -f bot.log | grep "promocional"
 
 ## Conclusão
 
-A implementação do intervalo de 10 minutos com controle manual oferece:
+A implementação do intervalo de 1 hora com controle manual oferece:
 - **Flexibilidade:** Controle total sobre as promoções
 - **Agressividade:** Marketing mais frequente
 - **Usabilidade:** Comando simples de controle
