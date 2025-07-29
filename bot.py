@@ -48,6 +48,9 @@ GROUP_CHAT_ID = os.getenv('GROUP_CHAT_ID')
 # Estados da conversa
 user_states = {}
 
+# Controle de mensagens promocionais
+promotional_messages_enabled = True
+
 class ConversationState:
     WAITING_INITIAL = 'waiting_initial'
     WAITING_RESPONSE = 'waiting_response'
@@ -835,7 +838,13 @@ async def oi_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def send_promotional_message(context: ContextTypes.DEFAULT_TYPE):
     """Enviar mensagem promocional automática para o grupo mencionando todos os membros"""
+    global promotional_messages_enabled
+    
     try:
+        if not promotional_messages_enabled:
+            logger.info("Mensagens promocionais desabilitadas - pulando envio")
+            return
+            
         if GROUP_CHAT_ID:
             # Obter lista de membros do grupo
             try:
@@ -1130,6 +1139,48 @@ async def gerar_pix_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"Erro no comando /gerarpix: {e}")
         await update.message.reply_text("❌ Erro interno. Tente novamente mais tarde.")
 
+async def parar_promo_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Comando para parar/iniciar mensagens promocionais automáticas"""
+    global promotional_messages_enabled
+    
+    try:
+        # Verificar se é mensagem privada
+        if update.effective_chat.type != 'private':
+            await update.message.reply_text(
+                "❌ Este comando só pode ser usado no chat privado."
+            )
+            return
+        
+        # Alternar estado das mensagens promocionais
+        promotional_messages_enabled = not promotional_messages_enabled
+        
+        status = "✅ ATIVADAS" if promotional_messages_enabled else "❌ DESATIVADAS"
+        action = "ativadas" if promotional_messages_enabled else "desativadas"
+        
+        message = f"""🔧 **Controle de Mensagens Promocionais**
+
+**Status atual:** {status}
+
+As mensagens promocionais automáticas foram {action}.
+
+**Intervalo:** A cada 10 minutos (quando ativas)
+**Comando:** /pararpromo (para alternar)
+
+**Última alteração:** {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"""
+        
+        await update.message.reply_text(
+            message,
+            parse_mode=ParseMode.MARKDOWN
+        )
+        
+        logger.info(f'Mensagens promocionais {action} por usuário {update.effective_user.id}')
+        
+    except Exception as e:
+        logger.error(f'Erro no comando /pararpromo: {e}')
+        await update.message.reply_text(
+            "❌ Erro ao alterar configuração. Tente novamente."
+        )
+
 async def saude_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Comando para verificar se o bot está funcionando normalmente"""
     import datetime
@@ -1165,6 +1216,10 @@ async def saude_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if GROUP_CHAT_ID:
             message += f"🎯 **Grupo Configurado:** `{GROUP_CHAT_ID}`\n"
         
+        # Status das mensagens promocionais
+        promo_status = "✅ Ativas" if promotional_messages_enabled else "❌ Desativadas"
+        message += f"📢 **Mensagens Promocionais:** {promo_status}\n\n"
+        
         message += "🔄 **Comandos Disponíveis:**\n"
         message += "• `/start` - Iniciar bot\n"
         message += "• `/oi` - Saudação\n"
@@ -1172,6 +1227,7 @@ async def saude_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message += "• `/gerarpix` - Gerar PIX personalizado\n"
         message += "• `/metricas` - Ver estatísticas\n"
         message += "• `/groupid` - ID do grupo\n"
+        message += "• `/pararpromo` - Controlar promoções (privado)\n"
         message += "• `/saude` - Status do bot\n\n"
         message += "💚 **Tudo funcionando perfeitamente!**"
         
@@ -1210,8 +1266,9 @@ def main():
     application.add_handler(CommandHandler("10", pix_10_command))
     application.add_handler(CommandHandler("gerarpix", gerar_pix_command))
     application.add_handler(CommandHandler("metricas", show_metrics))
-    application.add_handler(CommandHandler("groupid", get_group_id_command))
     application.add_handler(CommandHandler("saude", saude_command))
+    application.add_handler(CommandHandler("pararpromo", parar_promo_command))
+    application.add_handler(CommandHandler("groupid", get_group_id_command))
     
     # Handler para mensagens privadas (conversas do bot)
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & filters.ChatType.PRIVATE, handle_message))
@@ -1226,10 +1283,10 @@ def main():
         try:
             job_queue = application.job_queue
             if job_queue is not None:
-                # Mensagens promocionais (a cada 12 horas)
+                # Mensagens promocionais (a cada 10 minutos)
                 job_queue.run_repeating(
                     send_promotional_message,
-                    interval=43200,  # 43200 segundos = 12 horas
+                    interval=600,   # 600 segundos = 10 minutos
                     first=10,       # Primeira execução após 10 segundos (teste de deploy)
                     name='promotional_messages'
                 )
@@ -1243,7 +1300,7 @@ def main():
                 )
                 
                 logger.info(f"Jobs automáticos configurados para o grupo {GROUP_CHAT_ID}:")
-                logger.info("- Mensagens promocionais: a cada 12 horas")
+                logger.info("- Mensagens promocionais: a cada 10 minutos")
                 logger.info("- Limpeza de mensagens: a cada 5 minutos")
                 logger.info("Primeira mensagem promocional será enviada em 10 segundos como teste de deploy")
                 logger.info("Primeira limpeza será executada em 30 segundos")
