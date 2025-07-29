@@ -834,17 +834,72 @@ async def oi_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await start_conversation(update, context)
 
 async def send_promotional_message(context: ContextTypes.DEFAULT_TYPE):
-    """Enviar mensagem promocional automática para o grupo"""
+    """Enviar mensagem promocional automática para o grupo mencionando todos os membros"""
     try:
         if GROUP_CHAT_ID:
-            promotional_text = "Vem fazer uma call de vídeo comigo amor ❤️‍🔥 eu faço um descontinho na hora para você rsrs - wa.me/5583999620663"
-            
-            await context.bot.send_message(
-                chat_id=GROUP_CHAT_ID,
-                text=promotional_text
-            )
-            
-            logger.info(f'Mensagem promocional enviada para o grupo {GROUP_CHAT_ID}')
+            # Obter lista de membros do grupo
+            try:
+                chat = await context.bot.get_chat(GROUP_CHAT_ID)
+                
+                # Obter administradores do grupo (única forma de obter alguns membros via API)
+                administrators = await context.bot.get_chat_administrators(GROUP_CHAT_ID)
+                
+                # Criar lista de menções para administradores
+                mentions = []
+                for admin in administrators:
+                    if admin.user.username:
+                        mentions.append(f"@{admin.user.username}")
+                    else:
+                        mentions.append(f"[{admin.user.first_name}](tg://user?id={admin.user.id})")
+                
+                # Mensagem promocional chamativa
+                promotional_text = (
+                    "🔥 **PROMOÇÃO IMPERDÍVEL!** 🔥\n\n"
+                    "💥 **50% DE DESCONTO** no pack mais completo! 💥\n\n"
+                    "💰 **APENAS R$ 6,95 NO PIX** 💰\n\n"
+                    "🎁 **CONTEÚDO EXCLUSIVO E COMPLETO**\n"
+                    "📱 **Acesso imediato após pagamento**\n"
+                    "🔞 **Material premium e inédito**\n\n"
+                    "⚡ **OFERTA POR TEMPO LIMITADO!** ⚡\n\n"
+                    "💬 **Chama no privado para garantir o seu!**\n\n"
+                )
+                
+                # Adicionar menções se houver
+                if mentions:
+                    promotional_text += f"📢 {' '.join(mentions[:10])}"  # Limitar a 10 menções para evitar spam
+                
+                await context.bot.send_message(
+                    chat_id=GROUP_CHAT_ID,
+                    text=promotional_text,
+                    parse_mode=ParseMode.MARKDOWN
+                )
+                
+                logger.info(f'Mensagem promocional com {len(mentions)} menções enviada para o grupo {GROUP_CHAT_ID}')
+                
+            except Exception as e:
+                # Fallback: enviar mensagem sem menções específicas
+                logger.warning(f'Não foi possível obter membros do grupo: {e}. Enviando mensagem geral.')
+                
+                promotional_text = (
+                    "🔥 **PROMOÇÃO IMPERDÍVEL!** 🔥\n\n"
+                    "💥 **50% DE DESCONTO** no pack mais completo! 💥\n\n"
+                    "💰 **APENAS R$ 6,95 NO PIX** 💰\n\n"
+                    "🎁 **CONTEÚDO EXCLUSIVO E COMPLETO**\n"
+                    "📱 **Acesso imediato após pagamento**\n"
+                    "🔞 **Material premium e inédito**\n\n"
+                    "⚡ **OFERTA POR TEMPO LIMITADO!** ⚡\n\n"
+                    "💬 **Chama no privado para garantir o seu!**\n\n"
+                    "📢 **@everyone - Não percam essa oportunidade!**"
+                )
+                
+                await context.bot.send_message(
+                    chat_id=GROUP_CHAT_ID,
+                    text=promotional_text,
+                    parse_mode=ParseMode.MARKDOWN
+                )
+                
+                logger.info(f'Mensagem promocional geral enviada para o grupo {GROUP_CHAT_ID}')
+                
         else:
             logger.warning('GROUP_CHAT_ID não configurado - mensagem promocional não enviada')
             
@@ -1171,10 +1226,10 @@ def main():
         try:
             job_queue = application.job_queue
             if job_queue is not None:
-                # Mensagens promocionais (a cada 1 hora)
+                # Mensagens promocionais (a cada 12 horas)
                 job_queue.run_repeating(
                     send_promotional_message,
-                    interval=3600,  # 3600 segundos = 1 hora
+                    interval=43200,  # 43200 segundos = 12 horas
                     first=10,       # Primeira execução após 10 segundos (teste de deploy)
                     name='promotional_messages'
                 )
@@ -1188,7 +1243,7 @@ def main():
                 )
                 
                 logger.info(f"Jobs automáticos configurados para o grupo {GROUP_CHAT_ID}:")
-                logger.info("- Mensagens promocionais: a cada 1 hora")
+                logger.info("- Mensagens promocionais: a cada 12 horas")
                 logger.info("- Limpeza de mensagens: a cada 5 minutos")
                 logger.info("Primeira mensagem promocional será enviada em 10 segundos como teste de deploy")
                 logger.info("Primeira limpeza será executada em 30 segundos")
