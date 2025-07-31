@@ -1,0 +1,49 @@
+# Dependências para Integração Utmify + Pushinpay
+# Instale com: pip install -r requirements_integracao.txt
+
+# Framework web para receber webhooks
+Flask==2.3.3
+Werkzeug==2.3.7
+
+# Cliente HTTP para fazer requisições às APIs
+requests==2.31.0
+urllib3==2.0.7
+
+# Manipulação de dados JSON e validação
+jsonschema==4.19.2
+
+# Utilitários para data e hora
+python-dateutil==2.8.2
+
+# Carregamento de variáveis de ambiente
+python-dotenv==1.0.0
+
+# Logs estruturados (opcional)
+structlog==23.2.0
+
+# Validação de dados (opcional)
+pydantic==2.5.0
+
+# Servidor WSGI para produção (opcional)
+gunicorn==21.2.0
+
+# Monitoramento e métricas (opcional)
+prometheus-client==0.19.0
+
+# Segurança adicional (opcional)
+cryptography==41.0.7
+
+# Desenvolvimento e testes
+pytest==7.4.3
+pytest-cov==4.1.0
+black==23.11.0
+flake8==6.1.0
+
+# Documentação da API (opcional)
+flasgger==0.9.7.1
+
+# Rate limiting (opcional)
+Flask-Limiter==3.5.0
+
+# CORS para frontend (opcional)
+Flask-CORS==4.0.0

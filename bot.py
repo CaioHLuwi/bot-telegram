@@ -186,13 +186,13 @@ async def start_conversation(update: Update, context: ContextTypes.DEFAULT_TYPE)
     
     # Oferta direta com PIX
     await update.message.reply_text(
-        "Quer o vídeo sem censura mo? No meu pack eu te entrego 26 fotinhas deliciosas e 7 vídeos explicitos para você gozar comigo rsrsrs. Tudo isso por só R$ 12,90, te envio tudo na hora no privado do telegram."
+        "Quer o vídeo sem censura mo? No meu pack eu te entrego 26 fotinhas deliciosas e 7 vídeos explicitos para você gozar comigo rsrsrs. Tudo isso por só R$ 19,90, te envio tudo na hora no privado do telegram."
     )
     
     await asyncio.sleep(2)
     
-    # Gerar PIX de R$ 12,90 automaticamente
-    payment_data = create_pix_payment(12.90, "Pack Kyoko - R$ 12,90")
+    # Gerar PIX de R$ 19,90 automaticamente
+    payment_data = create_pix_payment(19.90, "Pack Kyoko - R$ 19,90")
     
     if payment_data:
         user_states[user_id] = ConversationState.WAITING_PAYMENT_12
@@ -202,7 +202,7 @@ async def start_conversation(update: Update, context: ContextTypes.DEFAULT_TYPE)
         context.user_data['pix_code_12'] = payment_data.get('qr_code')
         
         await update.message.reply_text(
-            f"Aqui está seu PIX de R$ 12,90:\n\n"
+            f"Aqui está seu PIX de R$ 19,90:\n\n"
             f"`{payment_data.get('qr_code', 'Código PIX não disponível')}`\n\n"
             f"Após o pagamento, clique em 'Confirmar Pagamento'!",
             parse_mode=ParseMode.MARKDOWN,
@@ -421,7 +421,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             await context.bot.send_message(
                 chat_id=query.message.chat_id,
-                text="Gostou? Tenho um pack completo com 26 fotos e 8 vídeos bem safadinhos por apenas R$ 12,90! Quer?",
+                text="Gostou? Tenho um pack completo com 26 fotos e 8 vídeos bem safadinhos por apenas R$ 19,90! Quer?",
                 reply_markup=reply_markup
             )
             
@@ -429,8 +429,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             logger.error(f"Erro ao continuar fluxo normal: {e}")
     
     elif data == "sim_12":
-        # Gerar PIX de R$ 12,90
-        payment_data = create_pix_payment(12.90, "Pack Kyoko - R$ 12,90")
+        # Gerar PIX de R$ 19,90
+        payment_data = create_pix_payment(19.90, "Pack Kyoko - R$ 19,90")
         
         if payment_data:
             user_states[user_id] = ConversationState.WAITING_PAYMENT_12
@@ -440,7 +440,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             await query.edit_message_text(
                 f"Perfeito amor! 💕\n\n"
-                f"Aqui está seu PIX de R$ 12,90:\n\n"
+                f"Aqui está seu PIX de R$ 19,90:\n\n"
                 f"`{payment_data.get('qr_code', 'Código PIX não disponível')}`\n\n"
                 f"Após o pagamento, clique em 'Confirmar Pagamento' abaixo!",
                 parse_mode=ParseMode.MARKDOWN,
@@ -567,7 +567,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Extrair o código PIX dos dados do usuário
         if data.startswith("copy_pix_12_"):
             pix_code = context.user_data.get('pix_code_12', 'Código não disponível')
-            valor = "R$ 12,90"
+            valor = "R$ 19,90"
         elif data.startswith("copy_pix_10_"):
             pix_code = context.user_data.get('pix_code_10', 'Código não disponível')
             valor = "R$ 10,00"
@@ -587,7 +587,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "payment_method_pix_10":
         # Usuário escolheu PIX para R$ 10,00
         try:
-            payment_data = create_pix_payment(10.00, "Pack Kyoko - R$ 10,00")
+            payment_data = create_pix_payment(10.00, "Pack Kyoko Especial - 10 fotos + 2 vídeos - R$ 10,00")
             
             if payment_data:
                 user_states[user_id] = ConversationState.WAITING_PAYMENT_10
@@ -595,7 +595,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 context.user_data['payment_id_10'] = payment_data.get('id')
                 context.user_data['pix_code_10'] = payment_data.get('qr_code')
                 
-                message = f"💰 **PIX de R$ 10,00 gerado!**\n\n"
+                message = f"💰 **PIX Pack Especial - R$ 10,00 gerado!**\n\n"
+                message += f"🎁 **10 fotos + 2 vídeos exclusivos**\n\n"
                 message += f"**Código PIX:**\n`{payment_data.get('qr_code', 'Código PIX não disponível')}`\n\n"
                 message += "📱 **Como pagar:**\n"
                 message += "1. Copie o código PIX\n"
@@ -740,7 +741,7 @@ async def send_content_link(query, context):
             amount = 29.90
         else:
             payment_type = "pack_12"
-            amount = 12.90
+            amount = 19.90
     elif "10" in query.data:
         payment_type = "pack_10"
         amount = 10.00
@@ -799,7 +800,7 @@ async def show_metrics(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         # Detalhes por tipo de pack
         metrics_message += f"💰 **VENDAS POR PACK**\n"
-        metrics_message += f"• Pack R$ 12,90: {conversion_stats['payments_12']} vendas\n"
+        metrics_message += f"• Pack R$ 19,90: {conversion_stats['payments_12']} vendas\n"
         metrics_message += f"• Pack R$ 5,90: {conversion_stats['payments_5']} vendas\n\n"
         
         # Estatísticas diárias (últimos 7 dias)
@@ -1088,7 +1089,8 @@ async def pix_10_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
-        message = "💰 **Pagamento de R$ 10,00**\n\n"
+        message = "💰 **Pack Especial - R$ 10,00**\n\n"
+        message += "🎁 **10 fotos + 2 vídeos exclusivos**\n\n"
         message += "Escolha sua forma de pagamento preferida:\n\n"
         message += "✅ **PIX** - Instantâneo e seguro\n"
         message += "✅ **Cartão** - Parcelamento disponível\n\n"
@@ -1208,7 +1210,7 @@ async def saude_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message += "🔄 **Comandos Disponíveis:**\n"
         message += "• `/start` - Iniciar bot\n"
         message += "• `/oi` - Saudação\n"
-        message += "• `/10` - Gerar PIX de R$ 10,00\n"
+        message += "• `/10` - Pack Especial: 10 fotos + 2 vídeos por R$ 10,00\n"
         message += "• `/gerarpix` - Gerar PIX personalizado\n"
         message += "• `/metricas` - Ver estatísticas\n"
         message += "• `/groupid` - ID do grupo\n"
