@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema PIX + ZapVoice - Exemplo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .qr-code {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .qr-code img {
+            max-width: 300px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+        
+        .pix-code {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            word-break: break-all;
+            margin: 15px 0;
+            border: 1px solid #dee2e6;
+        }
+        
+        .copy-btn {
+            background: #28a745;
+            color: white;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        
+        .status {
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: 600;
+        }
+        
+        .status.pending {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .status.paid {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.expired {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                margin: 10px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Sistema PIX + ZapVoice</h1>
+            <p>Demonstração da integração completa</p>
+        </div>
+        
+        <div class="content">
+            <form id="pixForm">
+                <div class="grid">
+                    <div class="form-group">
+                        <label for="valor">💰 Valor (R$)</label>
+                        <input type="number" id="valor" step="0.01" min="1" max="1000" required placeholder="Ex: 19.90">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="nome">👤 Nome do Cliente</label>
+                        <input type="text" id="nome" required placeholder="Ex: João Silva">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="descricao">📝 Descrição do Produto</label>
+                    <textarea id="descricao" rows="3" required placeholder="Ex: Pack Premium - 26 fotos + 7 vídeos"></textarea>
+                </div>
+                
+                <div class="grid">
+                    <div class="form-group">
+                        <label for="telefone">📱 Telefone (WhatsApp)</label>
+                        <input type="tel" id="telefone" placeholder="Ex: 11999999999">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="produto">🎁 Tipo de Produto</label>
+                        <select id="produto">
+                            <option value="pack_premium">Pack Premium (R$ 19,90)</option>
+                            <option value="pack_especial">Pack Especial (R$ 10,00)</option>
+                            <option value="pack_promocional">Pack Promocional (R$ 5,90)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn" id="submitBtn">
+                    <span id="btnText">🔥 Gerar PIX</span>
+                    <span id="btnLoading" class="loading" style="display: none;"></span>
+                </button>
+            </form>
+            
+            <div id="result" class="result">
+                <!-- Resultado será exibido aqui -->
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Configuração da API
+        const API_BASE_URL = 'http://localhost:5000'; // Altere para sua URL de produção
+        
+        let currentPedidoId = null;
+        let statusInterval = null;
+        
+        // Elementos do DOM
+        const form = document.getElementById('pixForm');
+        const result = document.getElementById('result');
+        const submitBtn = document.getElementById('submitBtn');
+        const btnText = document.getElementById('btnText');
+        const btnLoading = document.getElementById('btnLoading');
+        
+        // Event listeners
+        form.addEventListener('submit', handleSubmit);
+        
+        async function handleSubmit(e) {
+            e.preventDefault();
+            
+            // Mostrar loading
+            setLoading(true);
+            
+            try {
+                const formData = {
+                    valor: parseFloat(document.getElementById('valor').value),
+                    nome_cliente: document.getElementById('nome').value,
+                    descricao: document.getElementById('descricao').value,
+                    cliente_info: {
+                        phone: document.getElementById('telefone').value
+                    },
+                    produto_info: {
+                        name: document.getElementById('produto').options[document.getElementById('produto').selectedIndex].text,
+                        type: document.getElementById('produto').value
+                    }
+                };
+                
+                const response = await fetch(`${API_BASE_URL}/pix/criar`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentPedidoId = data.pedido_id;
+                    showSuccess(data);
+                    startStatusPolling();
+                } else {
+                    showError(data.error || 'Erro ao gerar PIX');
+                }
+                
+            } catch (error) {
+                console.error('Erro:', error);
+                showError('Erro de conexão com o servidor');
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        function setLoading(loading) {
+            submitBtn.disabled = loading;
+            btnText.style.display = loading ? 'none' : 'inline';
+            btnLoading.style.display = loading ? 'inline-block' : 'none';
+        }
+        
+        function showSuccess(data) {
+            result.className = 'result success';
+            result.style.display = 'block';
+            
+            result.innerHTML = `
+                <h3>✅ PIX Gerado com Sucesso!</h3>
+                <p><strong>Pedido ID:</strong> ${data.pedido_id}</p>
+                <p><strong>Valor:</strong> R$ ${data.valor.toFixed(2)}</p>
+                
+                <div class="qr-code">
+                    ${data.qr_code_image ? `<img src="${data.qr_code_image}" alt="QR Code PIX">` : ''}
+                </div>
+                
+                <div class="pix-code">
+                    <strong>Código PIX:</strong><br>
+                    <span id="pixCode">${data.qr_code}</span>
+                    <button class="copy-btn" onclick="copyPixCode()">📋 Copiar Código</button>
+                </div>
+                
+                <div id="statusContainer">
+                    <div class="status pending">⏳ Aguardando pagamento...</div>
+                </div>
+                
+                <p><small>💡 O PIX expira em 30 minutos. Status será atualizado automaticamente.</small></p>
+            `;
+        }
+        
+        function showError(message) {
+            result.className = 'result error';
+            result.style.display = 'block';
+            result.innerHTML = `
+                <h3>❌ Erro</h3>
+                <p>${message}</p>
+            `;
+        }
+        
+        function copyPixCode() {
+            const pixCode = document.getElementById('pixCode').textContent;
+            navigator.clipboard.writeText(pixCode).then(() => {
+                alert('✅ Código PIX copiado!');
+            }).catch(() => {
+                alert('❌ Erro ao copiar código');
+            });
+        }
+        
+        function startStatusPolling() {
+            if (statusInterval) {
+                clearInterval(statusInterval);
+            }
+            
+            statusInterval = setInterval(async () => {
+                if (!currentPedidoId) return;
+                
+                try {
+                    const response = await fetch(`${API_BASE_URL}/pix/status/${currentPedidoId}`);
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        updateStatus(data.status);
+                        
+                        // Parar polling se pagamento foi processado
+                        if (data.status === 'paid' || data.status === 'expired') {
+                            clearInterval(statusInterval);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Erro ao consultar status:', error);
+                }
+            }, 5000); // Consultar a cada 5 segundos
+        }
+        
+        function updateStatus(status) {
+            const statusContainer = document.getElementById('statusContainer');
+            if (!statusContainer) return;
+            
+            let statusClass = 'pending';
+            let statusText = '⏳ Aguardando pagamento...';
+            
+            switch (status) {
+                case 'paid':
+                    statusClass = 'paid';
+                    statusText = '✅ Pagamento confirmado! Produto será enviado via ZapVoice.';
+                    break;
+                case 'expired':
+                    statusClass = 'expired';
+                    statusText = '⏰ PIX expirado. Gere um novo pagamento.';
+                    break;
+                case 'cancelled':
+                    statusClass = 'expired';
+                    statusText = '❌ Pagamento cancelado.';
+                    break;
+            }
+            
+            statusContainer.innerHTML = `<div class="status ${statusClass}">${statusText}</div>`;
+        }
+        
+        // Preencher valores padrão para demonstração
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('valor').value = '19.90';
+            document.getElementById('nome').value = 'Cliente Teste';
+            document.getElementById('descricao').value = 'Pack Premium - 26 fotos + 7 vídeos exclusivos';
+            document.getElementById('telefone').value = '11999999999';
+        });
+        
+        // Limpar interval ao sair da página
+        window.addEventListener('beforeunload', () => {
+            if (statusInterval) {
+                clearInterval(statusInterval);
+            }
+        });
+    </script>
+</body>
+</html>
