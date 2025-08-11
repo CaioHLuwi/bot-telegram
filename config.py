@@ -40,6 +40,13 @@ PUSHIN_PAY_CONFIG = {
     'base_url': 'https://api.pushinpay.com.br/api'
 }
 
+# API Paradise Pay
+PARADISE_PAY_CONFIG = {
+    'api_token': '27Gwhqe0OW5aP7HaatdRPtOqFIjx9yPo3yXFzv2OXWzCL2YgHkr83PV6jc39',
+    'base_url': 'https://api.paradisepagbr.com/api',
+    'offer_hash': 's7b5e'  # Hash da oferta padrão
+}
+
 # Links
 LINKS = {
     'content': 'https://kyokoleticia.site/conteudo'

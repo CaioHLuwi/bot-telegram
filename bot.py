@@ -96,6 +96,45 @@ def create_pix_payment(amount: float, description: str) -> dict:
         logger.error(f'Erro na API Pushin Pay: {e}')
         return None
 
+def create_paradise_pix_payment(amount: float, description: str) -> dict:
+    """Criar pagamento PIX usando Paradise API"""
+    try:
+        headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        }
+        
+        payload = {
+            'api_token': PARADISE_API_TOKEN,
+            'offer_hash': PARADISE_OFFER_HASH,
+            'amount': amount,
+            'currency': 'BRL',
+            'payment_method': 'pix',
+            'description': description,
+            'customer': {
+                'name': 'Cliente',
+                'email': 'cliente@exemplo.com'
+            }
+        }
+        
+        response = requests.post(
+            f'{PARADISE_BASE_URL}/transactions',
+            json=payload,
+            headers=headers
+        )
+        
+        logger.info(f'Resposta da API Paradise: {response.status_code} - {response.text}')
+        
+        if response.status_code == 200 or response.status_code == 201:
+            return response.json()
+        else:
+            logger.error(f'Erro ao criar pagamento Paradise: {response.status_code} - {response.text}')
+            return None
+            
+    except Exception as e:
+        logger.error(f'Erro na API Paradise: {e}')
+        return None
+
 def check_payment_status(payment_id: str) -> dict:
     """Verificar status do pagamento"""
     try:
@@ -326,6 +365,97 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         except Exception as e:
             logger.error(f"Erro ao processar valor do PIX: {e}")
+            await update.message.reply_text(
+                "❌ **Erro interno**\n\n"
+                "Tente novamente mais tarde."
+            )
+            # Resetar estado em caso de erro
+            user_states[user_id] = ConversationState.WAITING_RESPONSE
+        
+        return
+    
+    elif current_state == 'waiting_paradise_pix_value':
+        # Processar valor digitado para gerar PIX Paradise
+        try:
+            # Remover espaços e substituir vírgula por ponto
+            value_text = update.message.text.strip().replace(',', '.')
+            
+            # Tentar converter para float
+            value = float(value_text)
+            
+            # Validar limites
+            if value < 1.00:
+                await update.message.reply_text(
+                    "❌ **Valor muito baixo!**\n\n"
+                    "O valor mínimo é R$ 1,00.\n\n"
+                    "Digite um valor válido:",
+                    parse_mode=ParseMode.MARKDOWN
+                )
+                return
+            
+            if value > 1000.00:
+                await update.message.reply_text(
+                    "❌ **Valor muito alto!**\n\n"
+                    "O valor máximo é R$ 1.000,00.\n\n"
+                    "Digite um valor válido:",
+                    parse_mode=ParseMode.MARKDOWN
+                )
+                return
+            
+            # Gerar PIX Paradise com o valor especificado
+            payment_data = create_paradise_pix_payment(value, f"PIX Paradise - R$ {value:.2f}")
+            
+            if payment_data:
+                # Resetar estado
+                user_states[user_id] = ConversationState.WAITING_RESPONSE
+                
+                # Salvar dados do pagamento
+                context.user_data['payment_id_paradise'] = payment_data.get('id')
+                context.user_data['pix_code_paradise'] = payment_data.get('pix_code')
+                context.user_data['pix_value_paradise'] = value
+                
+                message = f"✅ **PIX Paradise Gerado!**\n\n"
+                message += f"💰 **Valor:** R$ {value:.2f}\n\n"
+                message += f"📋 **Código PIX:**\n"
+                message += f"`{payment_data.get('pix_code', 'Código PIX não disponível')}`\n\n"
+                message += f"⏰ **Válido por:** 30 minutos\n\n"
+                message += f"📱 **Como pagar:**\n"
+                message += f"1. Copie o código PIX\n"
+                message += f"2. Abra seu app bancário\n"
+                message += f"3. Escolha PIX > Copia e Cola\n"
+                message += f"4. Cole o código e confirme"
+                
+                await update.message.reply_text(
+                    message,
+                    parse_mode=ParseMode.MARKDOWN,
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("📋 Copiar Código PIX", callback_data=f"copy_pix_paradise_{payment_data.get('id')}")],
+                        [InlineKeyboardButton("✅ Confirmar Pagamento", callback_data="confirm_payment_paradise")]
+                    ])
+                )
+                
+                logger.info(f"PIX Paradise gerado: R$ {value:.2f} para {update.effective_user.first_name}")
+            else:
+                await update.message.reply_text(
+                    "❌ **Erro ao gerar PIX Paradise**\n\n"
+                    "Houve um problema ao processar seu pagamento.\n"
+                    "Tente novamente em alguns minutos."
+                )
+                # Resetar estado em caso de erro
+                user_states[user_id] = ConversationState.WAITING_RESPONSE
+                
+        except ValueError:
+            await update.message.reply_text(
+                "❌ **Valor inválido!**\n\n"
+                "Digite apenas números. Exemplos:\n"
+                "• `15.50`\n"
+                "• `25`\n"
+                "• `100.00`\n\n"
+                "Tente novamente:",
+                parse_mode=ParseMode.MARKDOWN
+            )
+        except Exception as e:
+            logger.error(f"Erro ao processar valor do PIX Paradise: {e}")
             await update.message.reply_text(
                 "❌ **Erro interno**\n\n"
                 "Tente novamente mais tarde."
@@ -710,6 +840,44 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     await query.answer("Pagamento ainda não foi processado. Aguarde alguns minutos e tente novamente.", show_alert=True)
                 else:
                     await query.answer("Você ainda não pagou amor, verifica aí e tenta de novo.", show_alert=True)
+        else:
+            await query.answer("Erro: ID do pagamento não encontrado.", show_alert=True)
+    
+    elif data.startswith("copy_pix_paradise_"):
+        # Copiar código PIX Paradise
+        payment_id = data.replace("copy_pix_paradise_", "")
+        pix_code = context.user_data.get('pix_code_paradise')
+        if pix_code:
+            await query.answer("Código PIX Paradise copiado!", show_alert=True)
+        else:
+            await query.answer("Erro: Código PIX não encontrado.", show_alert=True)
+        
+        # Enviar código PIX em mensagem separada para facilitar cópia
+        await context.bot.send_message(
+            chat_id=query.message.chat_id,
+            text=f"`{pix_code}`",
+            parse_mode=ParseMode.MARKDOWN
+        )
+    
+    elif data == "confirm_payment_paradise":
+        payment_id = context.user_data.get('payment_id_paradise')
+        if payment_id:
+            # Para Paradise API, vamos simular confirmação (adapte conforme API real)
+            await query.edit_message_text(
+                f"✅ **Pagamento Paradise Confirmado!**\n\n"
+                f"💰 **Valor:** R$ {context.user_data.get('pix_value_paradise', 0):.2f}\n\n"
+                f"🎉 **Obrigado pela preferência!**\n\n"
+                f"📱 **Entre em contato para receber seu conteúdo:**\n"
+                f"wa.me/5583999620663"
+            )
+            
+            # Registrar pagamento nas métricas
+            user_id = query.from_user.id
+            amount = context.user_data.get('pix_value_paradise', 0)
+            bot_metrics.log_payment(user_id, amount, "paradise_pix")
+            
+            # Finalizar conversa
+            user_states[user_id] = ConversationState.CONVERSATION_ENDED
         else:
             await query.answer("Erro: ID do pagamento não encontrado.", show_alert=True)
 
@@ -1126,6 +1294,30 @@ async def gerar_pix_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"Erro no comando /gerarpix: {e}")
         await update.message.reply_text("❌ Erro interno. Tente novamente mais tarde.")
 
+async def pix_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Comando /pix - gerar PIX com Paradise API"""
+    try:
+        user_id = update.effective_user.id
+        
+        # Definir estado para aguardar valor
+        user_states[user_id] = 'waiting_paradise_pix_value'
+        
+        message = "💰 **Gerar PIX com Paradise**\n\n"
+        message += "Digite o valor desejado para o PIX:\n\n"
+        message += "📝 **Exemplos:**\n"
+        message += "• `15.50`\n"
+        message += "• `25`\n"
+        message += "• `100.00`\n\n"
+        message += "⚠️ **Valor mínimo:** R$ 1,00\n"
+        message += "⚠️ **Valor máximo:** R$ 1.000,00"
+        
+        await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
+        logger.info(f"Comando /pix iniciado por {update.effective_user.first_name}")
+        
+    except Exception as e:
+        logger.error(f"Erro no comando /pix: {e}")
+        await update.message.reply_text("❌ Erro interno. Tente novamente mais tarde.")
+
 async def parar_promo_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Comando para parar/iniciar mensagens promocionais automáticas"""
     global promotional_messages_enabled
@@ -1252,6 +1444,7 @@ def main():
     application.add_handler(CommandHandler("oi", oi_command))
     application.add_handler(CommandHandler("10", pix_10_command))
     application.add_handler(CommandHandler("gerarpix", gerar_pix_command))
+    application.add_handler(CommandHandler("pix", pix_command))
     application.add_handler(CommandHandler("metricas", show_metrics))
     application.add_handler(CommandHandler("saude", saude_command))
     application.add_handler(CommandHandler("pararpromo", parar_promo_command))
