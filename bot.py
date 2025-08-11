@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 # Configurações
 BOT_TOKEN = os.getenv('BOT_TOKEN')
-PUSHIN_PAY_TOKEN = '39884|DKt79CdRINdHafadVS01KwEHsF6vi8GwAoW273Meea17b5d5'
+PUSHIN_PAY_TOKEN = '42079|U54azimwhSNYA6BLEZWhISWJNm5XGCVwOqzJoj0X842499b1'
 PUSHIN_PAY_BASE_URL = 'https://api.pushinpay.com.br/api'
 CONTEUDO_LINK = 'https://kyokoleticia.site/conteudo'
 GROUP_CHAT_ID = os.getenv('GROUP_CHAT_ID')
