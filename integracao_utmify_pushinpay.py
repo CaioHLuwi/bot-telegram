@@ -33,7 +33,7 @@ app = Flask(__name__)
 class Config:
     PUSHINPAY_TOKEN = os.getenv('PUSHINPAY_TOKEN', 'seu_token_pushinpay')
     UTMIFY_API_KEY = os.getenv('UTMIFY_API_KEY', 'seu_token_utmify')
-    UTMIFY_API_URL = os.getenv('UTMIFY_API_URL', 'https://api.utmify.com/v1')
+    UTMIFY_API_URL = os.getenv('UTMIFY_API_URL', 'https://api.utmify.com.br/api-credentials/orders')
     WEBHOOK_SECRET = os.getenv('WEBHOOK_SECRET', 'seu_secret_webhook')
     
 config = Config()
@@ -45,41 +45,57 @@ class UtmifyIntegration:
         self.api_key = api_key
         self.base_url = base_url
         self.headers = {
-            'Authorization': f'Bearer {api_key}',
+            'x-api-token': api_key,
             'Content-Type': 'application/json',
             'User-Agent': 'KyokoBot-Utmify/1.0'
         }
     
     def enviar_conversao(self, dados_conversao: Dict[str, Any]) -> bool:
-        """Envia dados de conversão para Utmify"""
+        """Envia dados de conversão para Utmify seguindo a documentação oficial"""
         try:
+            # Payload seguindo a documentação oficial da UTMify brasileira
             payload = {
-                'event': 'conversion',
-                'transaction_id': dados_conversao.get('transaction_id'),
-                'value': float(dados_conversao.get('value', 0)),
+                'order_id': dados_conversao.get('transaction_id'),
+                'total_value': float(dados_conversao.get('value', 0)),
                 'currency': 'BRL',
+                'status': 'completed',
                 'payment_method': 'pix',
-                'attribution': {
-                    'utm_source': dados_conversao.get('utm_source'),
-                    'utm_medium': dados_conversao.get('utm_medium'),
-                    'utm_campaign': dados_conversao.get('utm_campaign'),
-                    'utm_content': dados_conversao.get('utm_content'),
-                    'utm_term': dados_conversao.get('utm_term')
-                },
                 'customer': {
-                    'email': dados_conversao.get('customer_email'),
-                    'id': dados_conversao.get('customer_id')
+                    'email': dados_conversao.get('customer_email', ''),
+                    'name': dados_conversao.get('customer_name', 'Cliente'),
+                    'phone': dados_conversao.get('customer_phone', ''),
+                    'document': dados_conversao.get('customer_document', '')
                 },
-                'timestamp': datetime.utcnow().isoformat() + 'Z'
+                'products': [{
+                    'name': 'Pack Digital',
+                    'quantity': 1,
+                    'price': float(dados_conversao.get('value', 0))
+                }],
+                'tracking': {
+                    'utm_source': dados_conversao.get('utm_source', ''),
+                    'utm_medium': dados_conversao.get('utm_medium', ''),
+                    'utm_campaign': dados_conversao.get('utm_campaign', ''),
+                    'utm_content': dados_conversao.get('utm_content', ''),
+                    'utm_term': dados_conversao.get('utm_term', ''),
+                    'src': dados_conversao.get('src', ''),
+                    'sck': dados_conversao.get('sck', ''),
+                    'fbclid': dados_conversao.get('fbclid', ''),
+                    'gclid': dados_conversao.get('gclid', '')
+                },
+                'commission': {
+                    'value': 0,
+                    'type': 'fixed'
+                },
+                'created_at': datetime.utcnow().isoformat() + 'Z'
             }
             
             # Remover campos vazios
             payload = self._limpar_payload(payload)
             
-            logger.info(f"Enviando conversão para Utmify: {payload['transaction_id']}")
+            logger.info(f"Enviando conversão para Utmify: {payload['order_id']}")
             
             response = requests.post(
-                f"{self.base_url}/conversions",
+                self.base_url,
                 headers=self.headers,
                 json=payload,
                 timeout=30

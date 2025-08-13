@@ -1,22 +1,34 @@
-# Integração IA + Pushinpay PIX - Guia Completo
+# Integração IA + Pushinpay PIX + UTMify - Guia Completo
 
-## 🤖 Como Fazer um Agente de IA Criar PIX Automaticamente
+## 🤖 Como Fazer um Agente de IA Criar PIX Automaticamente com Tracking UTMify
+
+### 🎯 Visão Geral
+
+Este guia demonstra como integrar:
+- **Pushinpay**: Para geração automática de PIX
+- **UTMify**: Para rastreamento de conversões e vendas
+- **Bot Telegram**: Para automação de vendas
+
+A integração permite rastrear a origem de cada venda (Facebook, Instagram, Google, etc.) e medir o ROI de campanhas publicitárias.
 
 ### 📋 Pré-requisitos
 
 1. **Conta Pushinpay** criada e aprovada
 2. **Token de API** da Pushinpay
-3. **Agente de IA** configurado (ChatGPT, Claude, etc.)
-4. **Servidor/Backend** para processar requisições
+3. **Conta UTMify** ativa
+4. **Token de API** da UTMify (x-api-token)
+5. **Agente de IA** configurado (ChatGPT, Claude, etc.)
+6. **Servidor/Backend** para processar requisições e webhooks
+7. **Domínio público** para receber webhooks da Pushinpay
 
-### 🔧 Configuração da API Pushinpay
+### 🔧 Configuração das APIs
 
-#### Endpoint para Criar PIX
+#### API Pushinpay - Criar PIX
 ```
 POST https://api.pushinpay.com.br/api/pix
 ```
 
-#### Headers Obrigatórios
+**Headers Obrigatórios:**
 ```json
 {
   "Authorization": "Bearer SEU_TOKEN_PUSHINPAY",
@@ -25,38 +37,99 @@ POST https://api.pushinpay.com.br/api/pix
 }
 ```
 
-#### Payload Mínimo
+**Payload Mínimo:**
 ```json
 {
   "value": 1990,  // Valor em centavos (R$ 19,90)
-  "webhook_url": "https://seu-dominio.com/webhook/pushinpay"  // Opcional
+  "webhook_url": "https://seu-dominio.com/webhook/pushinpay",
+  "custom_data": {
+    "utm_source": "facebook",
+    "utm_medium": "cpc",
+    "utm_campaign": "pack_digital",
+    "utm_content": "anuncio_01",
+    "utm_term": "pack"
+  }
+}
+```
+
+#### API UTMify - Enviar Conversão
+```
+POST https://api.utmify.com.br/api-credentials/orders
+```
+
+**Headers Obrigatórios:**
+```json
+{
+  "x-api-token": "SEU_TOKEN_UTMIFY",
+  "Content-Type": "application/json"
+}
+```
+
+**Payload Completo:**
+```json
+{
+  "order_id": "pix_123456789",
+  "total_value": 19.90,
+  "currency": "BRL",
+  "status": "completed",
+  "payment_method": "pix",
+  "customer": {
+    "email": "cliente@email.com",
+    "name": "Cliente",
+    "phone": "",
+    "document": ""
+  },
+  "products": [{
+    "name": "Pack Digital",
+    "quantity": 1,
+    "price": 19.90
+  }],
+  "tracking": {
+    "utm_source": "facebook",
+    "utm_medium": "cpc",
+    "utm_campaign": "pack_digital",
+    "utm_content": "anuncio_01",
+    "utm_term": "pack",
+    "src": "",
+    "sck": "",
+    "fbclid": "",
+    "gclid": ""
+  },
+  "commission": {
+    "value": 0,
+    "type": "fixed"
+  },
+  "created_at": "2024-01-15T10:30:00Z"
 }
 ```
 
 ### 🚀 Implementação Prática
 
-#### 1. Função Python para Criar PIX
+#### 1. Função Python Completa com UTMify
 
 ```python
 import requests
 import json
 from datetime import datetime
+from typing import Dict, Any, Optional
 
-def criar_pix_pushinpay(valor_reais, descricao="", webhook_url=None):
+def criar_pix_com_tracking(valor_reais: float, email: str, utm_params: Dict[str, str], descricao: str = "Pack Digital") -> Dict[str, Any]:
     """
-    Cria um PIX usando a API da Pushinpay
+    Cria um PIX usando a API da Pushinpay com parâmetros UTM para tracking
     
     Args:
         valor_reais (float): Valor em reais (ex: 19.90)
+        email (str): Email do cliente
+        utm_params (dict): Parâmetros UTM para tracking
         descricao (str): Descrição do pagamento
-        webhook_url (str): URL para receber notificações
     
     Returns:
         dict: Resposta da API com dados do PIX
     """
     
     # Configurações
-    PUSHINPAY_TOKEN = "SEU_TOKEN_AQUI"
+    PUSHINPAY_TOKEN = "SEU_TOKEN_PUSHINPAY"
+    WEBHOOK_URL = "https://seu-dominio.com/webhook/pushinpay"
     API_URL = "https://api.pushinpay.com.br/api/pix"
     
     # Converter valor para centavos
@@ -73,14 +146,22 @@ def criar_pix_pushinpay(valor_reais, descricao="", webhook_url=None):
         "Content-Type": "application/json"
     }
     
-    # Payload
+    # Payload com UTM tracking
     payload = {
-        "value": valor_centavos
+        "value": valor_centavos,
+        "webhook_url": WEBHOOK_URL,
+        "custom_data": {
+            "customer_email": email,
+            "description": descricao,
+            "utm_source": utm_params.get('utm_source', ''),
+            "utm_medium": utm_params.get('utm_medium', ''),
+            "utm_campaign": utm_params.get('utm_campaign', ''),
+            "utm_content": utm_params.get('utm_content', ''),
+            "utm_term": utm_params.get('utm_term', ''),
+            "fbclid": utm_params.get('fbclid', ''),
+            "gclid": utm_params.get('gclid', '')
+        }
     }
-    
-    # Adicionar webhook se fornecido
-    if webhook_url:
-        payload["webhook_url"] = webhook_url
     
     try:
         # Fazer requisição
@@ -97,7 +178,8 @@ def criar_pix_pushinpay(valor_reais, descricao="", webhook_url=None):
             "qr_code_base64": pix_data["qr_code_base64"],
             "valor": valor_reais,
             "status": pix_data["status"],
-            "criado_em": datetime.now().isoformat()
+            "criado_em": datetime.now().isoformat(),
+            "tracking_params": utm_params
         }
         
     except requests.exceptions.RequestException as e:
@@ -114,32 +196,177 @@ def criar_pix_pushinpay(valor_reais, descricao="", webhook_url=None):
         }
 ```
 
-#### 2. Integração com Agente de IA
+#### 2. Função para Enviar Conversão para UTMify
+
+```python
+def enviar_conversao_utmify(dados_conversao: Dict[str, Any]) -> bool:
+    """
+    Envia dados de conversão para UTMify seguindo a documentação oficial
+    
+    Args:
+        dados_conversao (dict): Dados da conversão do webhook Pushinpay
+    
+    Returns:
+        bool: True se enviado com sucesso, False caso contrário
+    """
+    
+    # Configurações
+    UTMIFY_API_KEY = "SEU_TOKEN_UTMIFY"
+    UTMIFY_API_URL = "https://api.utmify.com.br/api-credentials/orders"
+    
+    headers = {
+        'x-api-token': UTMIFY_API_KEY,
+        'Content-Type': 'application/json'
+    }
+    
+    # Payload seguindo a documentação oficial da UTMify brasileira
+    payload = {
+        'order_id': dados_conversao.get('transaction_id'),
+        'total_value': float(dados_conversao.get('value', 0)),
+        'currency': 'BRL',
+        'status': 'completed',
+        'payment_method': 'pix',
+        'customer': {
+            'email': dados_conversao.get('customer_email', ''),
+            'name': dados_conversao.get('customer_name', 'Cliente'),
+            'phone': dados_conversao.get('customer_phone', ''),
+            'document': dados_conversao.get('customer_document', '')
+        },
+        'products': [{
+            'name': 'Pack Digital',
+            'quantity': 1,
+            'price': float(dados_conversao.get('value', 0))
+        }],
+        'tracking': {
+            'utm_source': dados_conversao.get('utm_source', ''),
+            'utm_medium': dados_conversao.get('utm_medium', ''),
+            'utm_campaign': dados_conversao.get('utm_campaign', ''),
+            'utm_content': dados_conversao.get('utm_content', ''),
+            'utm_term': dados_conversao.get('utm_term', ''),
+            'src': dados_conversao.get('src', ''),
+            'sck': dados_conversao.get('sck', ''),
+            'fbclid': dados_conversao.get('fbclid', ''),
+            'gclid': dados_conversao.get('gclid', '')
+        },
+        'commission': {
+            'value': 0,
+            'type': 'fixed'
+        },
+        'created_at': datetime.utcnow().isoformat() + 'Z'
+    }
+    
+    try:
+        response = requests.post(UTMIFY_API_URL, headers=headers, json=payload, timeout=30)
+        
+        if response.status_code in [200, 201]:
+            print(f"✅ Conversão enviada para UTMify: {payload['order_id']}")
+            return True
+        else:
+            print(f"❌ Erro ao enviar para UTMify: {response.status_code} - {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Erro ao enviar para UTMify: {e}")
+        return False
+```
+
+#### 3. Webhook para Receber Notificações da Pushinpay
+
+```python
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+@app.route('/webhook/pushinpay', methods=['POST'])
+def webhook_pushinpay():
+    """
+    Endpoint para receber webhooks da Pushinpay e enviar para UTMify
+    """
+    try:
+        # Obter dados da requisição
+        dados = request.get_json()
+        
+        # Verificar se é um pagamento aprovado
+        if dados.get('status') not in ['approved', 'completed', 'paid']:
+            return jsonify({'status': 'ignored', 'message': 'Payment not approved'}), 200
+        
+        # Extrair dados relevantes
+        custom_data = dados.get('custom_data', {})
+        if isinstance(custom_data, str):
+            try:
+                custom_data = json.loads(custom_data)
+            except json.JSONDecodeError:
+                custom_data = {}
+        
+        conversao_data = {
+            'transaction_id': dados.get('transaction_id') or dados.get('id'),
+            'value': dados.get('amount') or dados.get('value'),
+            'customer_email': custom_data.get('customer_email', ''),
+            'customer_name': custom_data.get('customer_name', 'Cliente'),
+            'status': dados.get('status'),
+            'payment_method': 'pix',
+            'utm_source': custom_data.get('utm_source', ''),
+            'utm_medium': custom_data.get('utm_medium', ''),
+            'utm_campaign': custom_data.get('utm_campaign', ''),
+            'utm_content': custom_data.get('utm_content', ''),
+            'utm_term': custom_data.get('utm_term', ''),
+            'fbclid': custom_data.get('fbclid', ''),
+            'gclid': custom_data.get('gclid', '')
+        }
+        
+        # Enviar para UTMify
+        sucesso = enviar_conversao_utmify(conversao_data)
+        
+        if sucesso:
+            return jsonify({
+                'status': 'success',
+                'message': 'Conversion tracked successfully',
+                'transaction_id': conversao_data['transaction_id']
+            }), 200
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': 'Failed to track conversion'
+            }), 500
+            
+    except Exception as e:
+        print(f"❌ Erro no webhook: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)
+```
+
+#### 4. Integração com Bot Telegram/IA
 
 ##### Prompt para IA (System Message)
 ```
 Você é Letícia Kyoko, especialista em vendas de conteúdo adulto.
 
 Quando um cliente solicitar um PIX:
-1. Identifique o valor solicitado
-2. Use a função criar_pix_pushinpay(valor)
-3. Responda com os dados do PIX de forma natural
+1. Identifique o valor solicitado e email do cliente
+2. Extraia parâmetros UTM da conversa (se disponíveis)
+3. Use a função criar_pix_com_tracking(valor, email, utm_params)
+4. Responda com os dados do PIX de forma natural
 
 Exemplo de resposta:
 "Pronto gatinho! Fiz seu PIX de R$ 19,90. Aqui está o código para você copiar:
 
 [QR_CODE]
 
-É só copiar e colar no seu banco que o pagamento é instantâneo! Assim que pagar, te mando todo o conteúdo 😘"
+É só copiar e colar no seu banco que o pagamento é instantâneo! Assim que pagar, te mando todo o conteúdo 😘
+
+ID do pagamento: [PIX_ID]"
 
 Sempre seja carinhosa e use a personalidade da Letícia.
+Sempre peça o email do cliente antes de gerar o PIX.
 ```
 
 ##### Função para IA (Tool/Function)
 ```json
 {
-  "name": "criar_pix_pushinpay",
-  "description": "Cria um PIX usando a API da Pushinpay para pagamentos",
+  "name": "criar_pix_com_tracking",
+  "description": "Cria um PIX usando a API da Pushinpay com tracking UTMify",
   "parameters": {
     "type": "object",
     "properties": {
@@ -148,28 +375,79 @@ Sempre seja carinhosa e use a personalidade da Letícia.
         "description": "Valor em reais (ex: 19.90)",
         "minimum": 0.5
       },
+      "email": {
+        "type": "string",
+        "description": "Email do cliente",
+        "format": "email"
+      },
+      "utm_params": {
+        "type": "object",
+        "description": "Parâmetros UTM para tracking",
+        "properties": {
+          "utm_source": {"type": "string", "description": "Fonte do tráfego (facebook, instagram, google)"},
+          "utm_medium": {"type": "string", "description": "Meio (cpc, organic, social)"},
+          "utm_campaign": {"type": "string", "description": "Nome da campanha"},
+          "utm_content": {"type": "string", "description": "Conteúdo do anúncio"},
+          "utm_term": {"type": "string", "description": "Termo de pesquisa"},
+          "fbclid": {"type": "string", "description": "Facebook Click ID"},
+          "gclid": {"type": "string", "description": "Google Click ID"}
+        }
+      },
       "descricao": {
         "type": "string",
         "description": "Descrição do pagamento",
-        "default": "Pack Letícia Kyoko"
+        "default": "Pack Digital"
       }
     },
-    "required": ["valor_reais"]
+    "required": ["valor_reais", "email"]
   }
 }
 ```
 
-### 🔄 Fluxo Completo
+### 🔧 Configuração de Variáveis de Ambiente
+
+Crie um arquivo `.env` na raiz do projeto:
+
+```bash
+# Tokens das APIs
+PUSHINPAY_TOKEN=seu_token_pushinpay_aqui
+UTMIFY_API_KEY=seu_token_utmify_aqui
+
+# URLs das APIs
+UTMIFY_API_URL=https://api.utmify.com.br/api-credentials/orders
+WEBHOOK_SECRET=seu_secret_webhook_aqui
+
+# Configurações do servidor
+FLASK_ENV=production
+PORT=5000
+```
+
+### 🔄 Fluxo Completo da Integração
 
 #### 1. Cliente Solicita PIX
 ```
 Cliente: "Quero o pack de R$ 19,90"
+Bot: "Perfeito! Preciso do seu email para gerar o PIX 😊"
+Cliente: "meu.email@gmail.com"
 ```
 
-#### 2. IA Processa e Cria PIX
+#### 2. IA Processa e Cria PIX com Tracking
 ```python
+# IA extrai parâmetros UTM (se disponíveis)
+utm_params = {
+    'utm_source': 'telegram',
+    'utm_medium': 'bot',
+    'utm_campaign': 'pack_digital',
+    'utm_content': 'conversa_direta'
+}
+
 # IA chama a função
-resultado = criar_pix_pushinpay(19.90, "Pack Letícia Kyoko")
+resultado = criar_pix_com_tracking(
+    valor_reais=19.90,
+    email="meu.email@gmail.com",
+    utm_params=utm_params,
+    descricao="Pack Digital Letícia"
+)
 
 if resultado["sucesso"]:
     qr_code = resultado["qr_code"]
@@ -181,7 +459,7 @@ else:
 
 #### 3. IA Responde ao Cliente
 ```
-"Pronto mozinho! Criei seu PIX de R$ 19,90 ❤️
+"Pronto gatinho! Criei seu PIX de R$ 19,90 ❤️
 
 Código PIX:
 00020101021226770014BR.GOV.BCB.PIX2555api...
@@ -189,6 +467,28 @@ Código PIX:
 É só copiar e colar no seu app do banco! Pagamento é na hora e te mando todo o conteúdo assim que confirmar 😘
 
 ID do pagamento: 9c29870c-9f69-4bb6-90d3-2dce9453bb45"
+```
+
+#### 4. Cliente Paga o PIX
+- Cliente copia o código PIX
+- Realiza o pagamento no banco
+- Pushinpay detecta o pagamento
+
+#### 5. Webhook Automático
+- Pushinpay envia webhook para seu servidor
+- Servidor processa os dados do pagamento
+- Dados são enviados automaticamente para UTMify
+- UTMify registra a conversão com parâmetros UTM
+
+#### 6. Confirmação e Entrega
+```
+"🎉 Pagamento confirmado!
+
+Obrigada pela compra, gatinho! Aqui está seu pack completo:
+
+📁 [LINK_DO_CONTEUDO]
+
+Qualquer dúvida, é só chamar! 😘"
 ```
 
 ### 🎯 Implementação no ChatGPT/Claude
