@@ -20,7 +20,9 @@ from flask import Flask, request, jsonify
 from typing import Dict, Any, Optional
 import logging
 from logger_pix_requests import PixRequestLogger
+from sistema_remarketing_pix import RemarketingPIX
 import time
+import asyncio
 
 # Configuração de logs
 logging.basicConfig(
@@ -31,6 +33,14 @@ logger = logging.getLogger(__name__)
 
 # Inicializa o logger de PIX requests
 pix_logger = PixRequestLogger()
+
+# Inicializa o sistema de remarketing
+BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+if BOT_TOKEN:
+    remarketing_system = RemarketingPIX(BOT_TOKEN)
+else:
+    remarketing_system = None
+    logger.warning("⚠️ Token do bot não encontrado. Sistema de remarketing desabilitado.")
 
 app = Flask(__name__)
 
@@ -413,7 +423,7 @@ def index():
         'description': 'API para integrar tracking de vendas PIX entre Pushinpay e Utmify'
     })
 
-def gerar_pix_com_utm(valor: float, email: str, utm_params: Dict[str, str], user_info: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def gerar_pix_com_utm(valor: float, email: str, utm_params: Dict[str, str], user_info: Optional[Dict[str, Any]] = None, pack_name: str = "Pack Premium") -> Dict[str, Any]:
     """Função auxiliar para gerar PIX com parâmetros UTM"""
     start_time = time.time()
     
@@ -441,7 +451,8 @@ def gerar_pix_com_utm(valor: float, email: str, utm_params: Dict[str, str], user
         
         if response.status_code in [200, 201]:
             result = response.json()
-            logger.info(f"PIX gerado com sucesso para {email}")
+            payment_id = result.get('payment_id')
+            logger.info(f"PIX gerado com sucesso para {email} - Payment ID: {payment_id}")
             
             # Log da solicitação PIX
             pix_logger.log_pix_request(
@@ -449,15 +460,29 @@ def gerar_pix_com_utm(valor: float, email: str, utm_params: Dict[str, str], user
                 pix_data={
                     "valor_reais": valor,
                     "customer_email": email,
-                    "payment_id": result.get('payment_id'),
+                    "payment_id": payment_id,
                     "qr_code": result.get('qr_code'),
-                    "expires_at": result.get('expires_at')
+                    "expires_at": result.get('expires_at'),
+                    "pack_name": pack_name
                 },
                 utm_params=utm_params,
                 pushinpay_response=result,
                 status="success",
                 processing_time_ms=processing_time_ms
             )
+            
+            # Inicia campanha de remarketing se o sistema estiver disponível
+            if remarketing_system and user_info and user_info.get('telegram_id'):
+                try:
+                    asyncio.create_task(remarketing_system.iniciar_campanha_remarketing(
+                        user_id=str(user_info['telegram_id']),
+                        payment_id=payment_id,
+                        valor_original=valor,
+                        pack_name=pack_name
+                    ))
+                    logger.info(f"🎯 Campanha de remarketing iniciada para usuário {user_info['telegram_id']}")
+                except Exception as e:
+                    logger.error(f"Erro ao iniciar campanha de remarketing: {e}")
             
             return result
         else:
@@ -468,7 +493,8 @@ def gerar_pix_com_utm(valor: float, email: str, utm_params: Dict[str, str], user
                 user_info=user_info or {"email": email},
                 pix_data={
                     "valor_reais": valor,
-                    "customer_email": email
+                    "customer_email": email,
+                    "pack_name": pack_name
                 },
                 utm_params=utm_params,
                 pushinpay_response={"error": response.text, "status_code": response.status_code},
@@ -488,7 +514,8 @@ def gerar_pix_com_utm(valor: float, email: str, utm_params: Dict[str, str], user
             user_info=user_info or {"email": email},
             pix_data={
                 "valor_reais": valor,
-                "customer_email": email
+                "customer_email": email,
+                "pack_name": pack_name
             },
             utm_params=utm_params,
             pushinpay_response={"error": str(e)},

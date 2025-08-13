@@ -11,6 +11,7 @@ from telegram.constants import ParseMode
 from dotenv import load_dotenv
 from config import MESSAGES, PRICES, PACK_DESCRIPTIONS, PUSHIN_PAY_CONFIG, LINKS
 from metrics import bot_metrics
+from sistema_remarketing_pix import RemarketingPIX
 
 # Carregar configurações locais se existirem
 def load_local_env():
@@ -48,6 +49,15 @@ GROUP_CHAT_ID = os.getenv('GROUP_CHAT_ID')
 
 # Estados da conversa
 user_states = {}
+
+# Inicializar sistema de remarketing
+remarketing_system = None
+if BOT_TOKEN:
+    try:
+        remarketing_system = RemarketingPIX(BOT_TOKEN)
+        logger.info("🎯 Sistema de remarketing inicializado com sucesso")
+    except Exception as e:
+        logger.error(f"Erro ao inicializar sistema de remarketing: {e}")
 
 # Controle de mensagens promocionais
 promotional_messages_enabled = True
@@ -185,17 +195,32 @@ class LeticiaKyokoBot:
         resultado = self.create_pix_payment(valor, pack_id)
         
         if resultado['sucesso']:
+            payment_id = resultado['id']
+            
             # Salvar dados do pagamento no contexto
-            context.user_data[f'payment_id_{pack_id}'] = resultado['id']
+            context.user_data[f'payment_id_{pack_id}'] = payment_id
             context.user_data[f'pix_code_{pack_id}'] = resultado['qr_code']
             context.user_data['current_pack'] = pack_id
+            
+            # Iniciar campanha de remarketing
+            if remarketing_system:
+                try:
+                    asyncio.create_task(remarketing_system.iniciar_campanha_remarketing(
+                        user_id=str(user_id),
+                        payment_id=payment_id,
+                        valor_original=valor,
+                        pack_name=nome
+                    ))
+                    logger.info(f"🎯 Campanha de remarketing iniciada para usuário {user_id} - Pack: {nome}")
+                except Exception as e:
+                    logger.error(f"Erro ao iniciar campanha de remarketing: {e}")
             
             return MESSAGES['pack_confirmation'].format(
                 pack_type=nome,
                 price=valor,
                 description=descricao,
                 qr_code=resultado['qr_code'],
-                pix_id=resultado['id']
+                pix_id=payment_id
             )
         else:
             return MESSAGES['pix_error'].format(error=resultado['erro'])
