@@ -19,6 +19,8 @@ from datetime import datetime
 from flask import Flask, request, jsonify
 from typing import Dict, Any, Optional
 import logging
+from logger_pix_requests import PixRequestLogger
+import time
 
 # Configuração de logs
 logging.basicConfig(
@@ -26,6 +28,9 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Inicializa o logger de PIX requests
+pix_logger = PixRequestLogger()
 
 app = Flask(__name__)
 
@@ -213,12 +218,37 @@ def webhook_pushinpay():
         
         logger.info(f"Webhook recebido: {dados.get('event', 'unknown')}")
         
+        # Extrair parâmetros UTM dos dados
+        custom_data = dados.get('custom_data', {})
+        if isinstance(custom_data, str):
+            try:
+                custom_data = json.loads(custom_data)
+            except json.JSONDecodeError:
+                custom_data = {}
+        
+        utm_params = {
+            'utm_source': custom_data.get('utm_source'),
+            'utm_medium': custom_data.get('utm_medium'),
+            'utm_campaign': custom_data.get('utm_campaign'),
+            'utm_content': custom_data.get('utm_content'),
+            'utm_term': custom_data.get('utm_term')
+        }
+        
         # Processar webhook
         conversao_data = pushinpay_webhook.processar_webhook(dados)
         
         if conversao_data:
             # Enviar para Utmify
             sucesso = utmify.enviar_conversao(conversao_data)
+            
+            # Log do webhook com resultado da UTMify
+            pix_logger.log_webhook_received(
+                webhook_data=dados,
+                payment_id=conversao_data.get('transaction_id'),
+                utm_params=utm_params,
+                utmify_sent=sucesso,
+                utmify_response={'success': sucesso}
+            )
             
             if sucesso:
                 logger.info(f"Conversão processada com sucesso: {conversao_data['transaction_id']}")
@@ -234,6 +264,15 @@ def webhook_pushinpay():
                     'message': 'Failed to track conversion'
                 }), 500
         else:
+            # Log do webhook mesmo se não for conversão válida
+            pix_logger.log_webhook_received(
+                webhook_data=dados,
+                payment_id=dados.get('transaction_id') or dados.get('id'),
+                utm_params=utm_params,
+                utmify_sent=False,
+                utmify_response={'message': 'Webhook processado, mas não é uma conversão válida'}
+            )
+            
             logger.info("Webhook processado, mas não é uma conversão válida")
             return jsonify({
                 'status': 'ignored',
@@ -242,6 +281,19 @@ def webhook_pushinpay():
             
     except Exception as e:
         logger.error(f"Erro no webhook: {e}")
+        
+        # Log do erro no webhook
+        try:
+            pix_logger.log_webhook_received(
+                webhook_data=request.get_json() or {},
+                payment_id="unknown",
+                utm_params={},
+                utmify_sent=False,
+                utmify_response={'error': str(e)}
+            )
+        except:
+            pass
+        
         return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/webhook/test', methods=['POST'])
@@ -295,6 +347,58 @@ def health_check():
         'version': '1.0.0'
     })
 
+@app.route('/logs/stats')
+def logs_statistics():
+    """Endpoint para visualizar estatísticas dos logs"""
+    try:
+        stats = pix_logger.get_statistics()
+        return jsonify({
+            'success': True,
+            'data': stats,
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/logs/date/<date_str>')
+def logs_by_date(date_str):
+    """Endpoint para visualizar logs por data (formato: YYYY-MM-DD)"""
+    try:
+        logs = pix_logger.get_logs_by_date(date_str)
+        return jsonify({
+            'success': True,
+            'date': date_str,
+            'count': len(logs),
+            'data': logs,
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/logs/status/<status>')
+def logs_by_status(status):
+    """Endpoint para visualizar logs por status (success, error, pending)"""
+    try:
+        logs = pix_logger.get_logs_by_status(status)
+        return jsonify({
+            'success': True,
+            'status': status,
+            'count': len(logs),
+            'data': logs,
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/', methods=['GET'])
 def index():
     """Página inicial com informações da API"""
@@ -309,8 +413,10 @@ def index():
         'description': 'API para integrar tracking de vendas PIX entre Pushinpay e Utmify'
     })
 
-def gerar_pix_com_utm(valor: float, email: str, utm_params: Dict[str, str]) -> Dict[str, Any]:
+def gerar_pix_com_utm(valor: float, email: str, utm_params: Dict[str, str], user_info: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Função auxiliar para gerar PIX com parâmetros UTM"""
+    start_time = time.time()
+    
     try:
         headers = {
             'Authorization': f'Bearer {config.PUSHINPAY_TOKEN}',
@@ -331,15 +437,66 @@ def gerar_pix_com_utm(valor: float, email: str, utm_params: Dict[str, str]) -> D
             timeout=30
         )
         
+        processing_time_ms = int((time.time() - start_time) * 1000)
+        
         if response.status_code in [200, 201]:
+            result = response.json()
             logger.info(f"PIX gerado com sucesso para {email}")
-            return response.json()
+            
+            # Log da solicitação PIX
+            pix_logger.log_pix_request(
+                user_info=user_info or {"email": email},
+                pix_data={
+                    "valor_reais": valor,
+                    "customer_email": email,
+                    "payment_id": result.get('payment_id'),
+                    "qr_code": result.get('qr_code'),
+                    "expires_at": result.get('expires_at')
+                },
+                utm_params=utm_params,
+                pushinpay_response=result,
+                status="success",
+                processing_time_ms=processing_time_ms
+            )
+            
+            return result
         else:
             logger.error(f"Erro ao gerar PIX: {response.status_code} - {response.text}")
+            
+            # Log do erro
+            pix_logger.log_pix_request(
+                user_info=user_info or {"email": email},
+                pix_data={
+                    "valor_reais": valor,
+                    "customer_email": email
+                },
+                utm_params=utm_params,
+                pushinpay_response={"error": response.text, "status_code": response.status_code},
+                status="error",
+                errors=[f"HTTP {response.status_code}: {response.text}"],
+                processing_time_ms=processing_time_ms
+            )
+            
             return {'error': 'Failed to generate PIX'}
             
     except Exception as e:
+        processing_time_ms = int((time.time() - start_time) * 1000)
         logger.error(f"Erro ao gerar PIX: {e}")
+        
+        # Log da exceção
+        pix_logger.log_pix_request(
+            user_info=user_info or {"email": email},
+            pix_data={
+                "valor_reais": valor,
+                "customer_email": email
+            },
+            utm_params=utm_params,
+            pushinpay_response={"error": str(e)},
+            status="error",
+            errors=[str(e)],
+            processing_time_ms=processing_time_ms
+        )
+        
         return {'error': str(e)}
 
 if __name__ == '__main__':

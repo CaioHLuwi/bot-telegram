@@ -1,0 +1,86 @@
+{
+  "pix_requests": [],
+  "metadata": {
+    "created_at": "2024-01-01T00:00:00Z",
+    "description": "Log de todas as solicitações de PIX com parâmetros UTMify e Pushinpay",
+    "version": "1.0",
+    "fields_description": {
+      "timestamp": "Data e hora da solicitação",
+      "request_id": "ID único da solicitação",
+      "user_info": "Informações do usuário que solicitou",
+      "pix_data": "Dados do PIX gerado pela Pushinpay",
+      "utm_params": "Parâmetros UTM para rastreamento",
+      "pushinpay_response": "Resposta completa da API Pushinpay",
+      "utmify_data": "Dados preparados para envio à UTMify",
+      "status": "Status da operação (success, error, pending)"
+    }
+  },
+  "example_entry": {
+    "timestamp": "2024-01-01T12:00:00Z",
+    "request_id": "req_123456789",
+    "user_info": {
+      "telegram_id": "123456789",
+      "username": "@usuario",
+      "email": "usuario@email.com",
+      "phone": "+5511999999999"
+    },
+    "pix_data": {
+      "valor_reais": 97.00,
+      "descricao": "Pack Premium - Oferta Especial",
+      "payment_id": "pix_abc123",
+      "qr_code": "00020126580014BR.GOV.BCB.PIX...",
+      "expires_at": "2024-01-01T12:30:00Z"
+    },
+    "utm_params": {
+      "utm_source": "telegram",
+      "utm_medium": "bot",
+      "utm_campaign": "black_friday_2024",
+      "utm_content": "pack_premium",
+      "utm_term": "oferta_especial",
+      "utm_id": "camp_123",
+      "gclid": "abc123def456",
+      "fbclid": "xyz789uvw012"
+    },
+    "pushinpay_response": {
+      "success": true,
+      "payment_id": "pix_abc123",
+      "qr_code": "00020126580014BR.GOV.BCB.PIX...",
+      "amount": 97.00,
+      "status": "pending",
+      "created_at": "2024-01-01T12:00:00Z",
+      "expires_at": "2024-01-01T12:30:00Z"
+    },
+    "utmify_data": {
+      "order_id": "pix_abc123",
+      "total_value": 97.00,
+      "status": "pending",
+      "customer": {
+        "email": "usuario@email.com",
+        "phone": "+5511999999999",
+        "telegram_id": "123456789"
+      },
+      "products": [
+        {
+          "name": "Pack Premium",
+          "price": 97.00,
+          "quantity": 1,
+          "category": "digital_product"
+        }
+      ],
+      "tracking": {
+        "utm_source": "telegram",
+        "utm_medium": "bot",
+        "utm_campaign": "black_friday_2024",
+        "utm_content": "pack_premium",
+        "utm_term": "oferta_especial"
+      },
+      "commission": {
+        "value": 0,
+        "percentage": 0
+      }
+    },
+    "status": "success",
+    "errors": [],
+    "processing_time_ms": 1250
+  }
+}
