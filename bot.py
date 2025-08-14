@@ -74,8 +74,8 @@ def create_pix_payment(amount: float, description: str) -> dict:
         value_in_cents = int(amount * 100)
         
         payload = {
-            'value': value_in_cents,
-            'webhook_url': None  # Opcional: adicione sua URL de webhook se tiver
+            'value': value_in_cents
+            # webhook_url removido - pode ser adicionado quando necessário
         }
         
         response = requests.post(

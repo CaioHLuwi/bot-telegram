@@ -118,8 +118,8 @@ class LeticiaKyokoBot:
             value_in_cents = int(amount * 100)
             
             payload = {
-                'value': value_in_cents,
-                'webhook_url': None  # Opcional: adicione sua URL de webhook se tiver
+                'value': value_in_cents
+                # webhook_url removido - pode ser adicionado quando necessário
             }
             
             response = requests.post(
