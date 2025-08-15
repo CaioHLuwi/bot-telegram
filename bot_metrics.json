@@ -1,5 +1,5 @@
 {
-  "total_users": 1,
+  "total_users": 3,
   "daily_stats": {
     "2025-07-26": {
       "new_users": 1,
@@ -12,6 +12,12 @@
       "total_conversations": 1,
       "payments": 0,
       "revenue": 0.0
+    },
+    "2025-08-14": {
+      "new_users": 2,
+      "total_conversations": 3,
+      "payments": 0,
+      "revenue": 0.0
     }
   },
   "user_interactions": {
@@ -19,13 +25,29 @@
       "first_interaction": "2025-07-26T04:11:21.508170",
       "username": "leticiakyoko",
       "first_name": "Leticia",
-      "total_conversations": 6,
+      "total_conversations": 7,
       "payments": [],
-      "last_interaction": "2025-07-27T00:40:24.490884"
+      "last_interaction": "2025-08-14T14:34:51.777545"
+    },
+    "5384808299": {
+      "first_interaction": "2025-08-14T11:39:53.720887",
+      "username": null,
+      "first_name": "Mc",
+      "total_conversations": 1,
+      "payments": [],
+      "last_interaction": "2025-08-14T11:39:53.720921"
+    },
+    "5377904387": {
+      "first_interaction": "2025-08-14T15:58:57.881407",
+      "username": null,
+      "first_name": "Rodrigo",
+      "total_conversations": 1,
+      "payments": [],
+      "last_interaction": "2025-08-14T15:58:57.881422"
     }
   },
   "conversion_stats": {
-    "total_conversations": 6,
+    "total_conversations": 9,
     "payments_12": 0,
     "payments_5": 0,
     "total_revenue": 0.0
@@ -42,11 +64,11 @@
     "8": 0,
     "9": 0,
     "10": 0,
-    "11": 0,
+    "11": 1,
     "12": 0,
     "13": 0,
-    "14": 0,
-    "15": 0,
+    "14": 1,
+    "15": 1,
     "16": 0,
     "17": 0,
     "18": 0,
@@ -56,5 +78,5 @@
     "22": 0,
     "23": 0
   },
-  "last_updated": "2025-07-27T00:40:24.490891"
+  "last_updated": "2025-08-14T15:58:57.881426"
 }
